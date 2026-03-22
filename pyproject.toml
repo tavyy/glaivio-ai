@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "glaivio"
+version = "0.1.0"
+description = "The opinionated framework for AI-native apps"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+    "python-dotenv",
+    "python-multipart",
+    "twilio",
+    "click",
+    "langchain",
+    "langchain-anthropic",
+    "langgraph",
+]
+
+[project.scripts]
+glaivio = "glaivio.cli:cli"
+
+[project.optional-dependencies]
+postgres = ["langgraph-checkpoint-postgres", "psycopg[binary]"]
+knowledge = ["chromadb", "langchain-chroma", "sentence-transformers", "pypdf", "unstructured"]
+gemini = ["langchain-google-genai"]
+openai = ["langchain-openai"]
+ollama = ["langchain-ollama"]
+all = [
+    "langgraph-checkpoint-postgres",
+    "psycopg[binary]",
+    "langchain-google-genai",
+    "langchain-openai",
+    "langchain-ollama",
+]
+
+[project.urls]
+Homepage = "https://glaivio.dev"
+Repository = "https://github.com/glaivio/glaivio"
