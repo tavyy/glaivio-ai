@@ -143,13 +143,27 @@ class Agent:
 
         session = self._get_session(user_id)
         config = {"configurable": {"thread_id": user_id}}
+
+        print(f"\n[Glaivio] ← {user_id}: {message}")
+
         result = session.invoke(
             {"messages": [HumanMessage(content=message)]},
             config=config,
         )
         messages = result["messages"]
+
+        # log skill calls and results
+        for msg in messages:
+            if hasattr(msg, "tool_calls") and msg.tool_calls:
+                for tc in msg.tool_calls:
+                    print(f"[Glaivio] ⚙ skill: {tc['name']}({tc['args']})")
+            if msg.__class__.__name__ == "ToolMessage":
+                print(f"[Glaivio] ⚙ result: {msg.content}")
+
         trimmed = _trim_messages(messages, self.max_messages)
         reply = trimmed[-1].content
+
+        print(f"[Glaivio] → {user_id}: {reply}\n")
 
         # check if agent signalled confusion
         if self.on_confusion and self._is_confused(reply):

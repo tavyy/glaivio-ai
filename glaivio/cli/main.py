@@ -129,6 +129,10 @@ def run(channel, port):
     from dotenv import load_dotenv
     load_dotenv()
 
+    # ensure project directory is on sys.path so skills/ and other local modules import correctly
+    if str(Path.cwd()) not in sys.path:
+        sys.path.insert(0, str(Path.cwd()))
+
     resolved_channel = channel or os.getenv("GLAIVIO_CHANNEL", "web")
 
     click.echo(f"Starting Glaivio agent on channel: {resolved_channel}")
