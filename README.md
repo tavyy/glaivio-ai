@@ -107,28 +107,111 @@ pip install glaivio
 
 ## Quickstart
 
+Here's a real example — an AI receptionist that books appointments over WhatsApp.
+
+**1. Scaffold**
+
 ```bash
-glaivio new my-app
-cd my-app
+glaivio new my-receptionist
+cd my-receptionist
 cp .env.example .env   # add your ANTHROPIC_API_KEY
-glaivio run
 ```
 
-This scaffolds:
+**2. Write your prompt** — `prompts/system.md`
 
-```
-my-app/
-├── prompts/
-│   └── system.md       ← write your agent's instructions here
-├── skills/
-│   └── example.py
-├── knowledge/
-├── agent.py
-├── .env.example
-└── requirements.txt
+```markdown
+You are an AI receptionist for Bright Smile Dental.
+
+Your job is to help patients via WhatsApp. Keep replies SHORT — this is a text message.
+Max 2 sentences. Never use bullet points or markdown.
+
+Practice info:
+- Address: 123 High Street, London
+- Hours: Mon-Fri 8am-6pm, Sat 9am-2pm
+
+When booking: ask for name, date and time. Always call check_availability first.
+If the slot is taken, offer the alternatives the tool returns.
+When rescheduling: cancel the old appointment first, then book the new one.
+If medical or urgent, tell them to call the office directly.
 ```
 
-Open `http://localhost:8000` — your agent is running.
+**3. Generate your skills**
+
+```bash
+glaivio generate skill CheckAvailability
+glaivio generate skill BookAppointment
+glaivio generate skill CancelAppointment
+```
+
+Fill in the logic — skills are just functions:
+
+```python
+# skills/check_availability.py
+from glaivio import skill
+
+@skill
+def check_availability(date: str, time: str) -> str:
+    """Check if a time slot is available. Always call before book_appointment.
+    date: YYYY-MM-DD, time: HH:MM 24h format."""
+    # call your calendar API here
+    return "Available"
+```
+
+```python
+# skills/book_appointment.py
+from glaivio import skill
+
+@skill
+def book_appointment(patient_name: str, patient_phone: str, date: str, time: str) -> str:
+    """Book an appointment. Only call after check_availability confirms the slot is free.
+    patient_phone: use the current user's ID from context.
+    date: YYYY-MM-DD, time: HH:MM 24h format."""
+    # call your calendar API here
+    return f"Booked {patient_name} on {date} at {time}"
+```
+
+```python
+# skills/cancel_appointment.py
+from glaivio import skill
+
+@skill
+def cancel_appointment(patient_phone: str, date: str) -> str:
+    """Cancel an existing appointment on a given date.
+    patient_phone: use the current user's ID from context.
+    date: YYYY-MM-DD format."""
+    # call your calendar API here
+    return f"Cancelled appointment on {date}"
+```
+
+**4. Wire it up** — `agent.py`
+
+```python
+from dotenv import load_dotenv
+load_dotenv()
+
+from glaivio import Agent
+from skills.check_availability import check_availability
+from skills.book_appointment import book_appointment
+from skills.cancel_appointment import cancel_appointment
+
+agent = Agent(
+    instructions="prompts/system.md",
+    skills=[check_availability, book_appointment, cancel_appointment],
+    learn_from_feedback=True,
+    privacy=True,
+)
+
+if __name__ == "__main__":
+    agent.run(channel="whatsapp")
+```
+
+**5. Run it**
+
+```bash
+glaivio run --channel whatsapp
+```
+
+Point your Twilio webhook at `POST https://your-domain/webhook/whatsapp`. Done.
 
 ---
 
