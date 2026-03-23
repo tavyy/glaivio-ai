@@ -26,42 +26,39 @@ That's it. Your agent is live on WhatsApp.
 
 ## How it works
 
-Meet your AI receptionist:
-
 ```
                     ┌──────────────────────┐
                     │   prompts/system.md  │
-                    │  "You are a dental   │
-                    │   receptionist..."   │
+                    │  "You are a helpful  │
+                    │   assistant..."      │
                     └──────────┬───────────┘
                                │ personality & rules
                     ┌──────────▼───────────┐
                     │                      │
-        ┌───────────┤     🧠  Claude       ├───────────┐
-        │           │      (the brain)     │           │
+        ┌───────────┤     🧠  LLM          ├───────────┐
+        │           │   (Claude/GPT/Gemini)│           │
         │           └──────────┬───────────┘           │
         │                      │                       │
 ┌───────▼────────┐  ┌──────────▼──────────┐  ┌────────▼────────┐
-│ check_avail-   │  │  book_appointment   │  │cancel_appoint-  │
-│ ability()      │  │  (name, date, time) │  │ment(date)       │
-│  (left arm)    │  │    (right arm)      │  │   (leg)         │
+│   skill_one()  │  │    skill_two()      │  │  skill_three()  │
+│                │  │                     │  │                 │
 └───────┬────────┘  └──────────┬──────────┘  └────────┬────────┘
         │                      │                       │
         └──────────────────────▼───────────────────────┘
                                │
                     ┌──────────▼───────────┐
-                    │  📱 WhatsApp/SMS      │
-                    │  "Your 2pm Tuesday   │
-                    │   is confirmed!"     │
+                    │  📱 WhatsApp/SMS/Web  │
+                    │  "Done! Here's your  │
+                    │   confirmation."     │
                     └──────────┬───────────┘
                                │
                     ┌──────────▼───────────┐         ┌─────────────────────┐
-                    │      Patient         │         │   👨‍⚕️ Human (you)    │
-                    │  "That's wrong,      │──────── │                     │
-                    │   I said Wednesday"  │ confused│ notified via        │
-                    └──────────┬───────────┘         │ WhatsApp            │
-                               │ correction          │ "learned: always    │
-                    ┌──────────▼───────────┐         │  confirm the day"   │
+                    │        User          │         │   👤 Human (you)    │
+                    │  "That's wrong,      ├─────────►  notified when      │
+                    │   I meant X not Y"   │ confused│  agent is stuck     │
+                    └──────────┬───────────┘         │                     │
+                               │ correction          │  "learned: always   │
+                    ┌──────────▼───────────┐         │   confirm X first"  │
                     │  💡 Self-improvement  │◄────────┘                    │
                     │  .glaivio/           │                               │
                     │  corrections.json    │                               │
