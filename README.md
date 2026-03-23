@@ -24,6 +24,54 @@ That's it. Your agent is live on WhatsApp.
 
 ---
 
+## How it works
+
+Meet your AI receptionist:
+
+```
+                    ┌──────────────────────┐
+                    │   prompts/system.md  │
+                    │  "You are a dental   │
+                    │   receptionist..."   │
+                    └──────────┬───────────┘
+                               │ personality & rules
+                    ┌──────────▼───────────┐
+                    │                      │
+        ┌───────────┤     🧠  Claude       ├───────────┐
+        │           │      (the brain)     │           │
+        │           └──────────┬───────────┘           │
+        │                      │                       │
+┌───────▼────────┐  ┌──────────▼──────────┐  ┌────────▼────────┐
+│ check_avail-   │  │  book_appointment   │  │cancel_appoint-  │
+│ ability()      │  │  (name, date, time) │  │ment(date)       │
+│  (left arm)    │  │    (right arm)      │  │   (leg)         │
+└───────┬────────┘  └──────────┬──────────┘  └────────┬────────┘
+        │                      │                       │
+        └──────────────────────▼───────────────────────┘
+                               │
+                    ┌──────────▼───────────┐
+                    │  📱 WhatsApp/SMS      │
+                    │  "Your 2pm Tuesday   │
+                    │   is confirmed!"     │
+                    └──────────┬───────────┘
+                               │
+                    ┌──────────▼───────────┐         ┌─────────────────────┐
+                    │      Patient         │         │   👨‍⚕️ Human (you)    │
+                    │  "That's wrong,      │──────── │                     │
+                    │   I said Wednesday"  │ confused│ notified via        │
+                    └──────────┬───────────┘         │ WhatsApp            │
+                               │ correction          │ "learned: always    │
+                    ┌──────────▼───────────┐         │  confirm the day"   │
+                    │  💡 Self-improvement  │◄────────┘                    │
+                    │  .glaivio/           │                               │
+                    │  corrections.json    │                               │
+                    └──────────────────────┘
+```
+
+The brain decides. The skills act. The channel talks. The human teaches. The agent gets smarter.
+
+---
+
 ## Why Glaivio?
 
 Every developer building an AI agent today faces the same problems:
