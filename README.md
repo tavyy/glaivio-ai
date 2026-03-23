@@ -2,7 +2,7 @@
 
 **The opinionated framework for AI-native apps.**
 
-No UI. No forms. No buttons. Just a brain, skills, and a channel.
+Rails did it for web apps. Next.js did it for React. Glaivio does it for AI agents.
 
 ```python
 from glaivio import Agent, skill
