@@ -100,7 +100,7 @@ If you want full control and flexibility — use Langchain. If you want to ship 
 ## Install
 
 ```bash
-pip install glaivio
+pip install glaivio-ai
 ```
 
 ---

@@ -3,7 +3,7 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "glaivio"
+name = "glaivio-ai"
 version = "0.1.0"
 description = "The opinionated framework for AI-native apps"
 readme = "README.md"
