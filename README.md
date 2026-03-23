@@ -26,46 +26,45 @@ That's it. Your agent is live on WhatsApp.
 
 ## How it works
 
+Glaivio gives every AI-native app the same anatomy:
+
 ```
                     ┌──────────────────────┐
-                    │   prompts/system.md  │
-                    │  "You are a helpful  │
-                    │   assistant..."      │
-                    └──────────┬───────────┘
-                               │ personality & rules
-                    ┌──────────▼───────────┐
-                    │                      │
-        ┌───────────┤     🧠  LLM          ├───────────┐
-        │           │   (Claude/GPT/Gemini)│           │
-        │           └──────────┬───────────┘           │
-        │                      │                       │
-┌───────▼────────┐  ┌──────────▼──────────┐  ┌────────▼────────┐
-│   skill_one()  │  │    skill_two()      │  │  skill_three()  │
-│                │  │                     │  │                 │
-└───────┬────────┘  └──────────┬──────────┘  └────────┬────────┘
-        │                      │                       │
-        └──────────────────────▼───────────────────────┘
-                               │
-                    ┌──────────▼───────────┐
-                    │  📱 WhatsApp/SMS/Web  │
-                    │  "Done! Here's your  │
-                    │   confirmation."     │
+                    │   prompts/system.md  │  ← who the agent is
                     └──────────┬───────────┘
                                │
-                    ┌──────────▼───────────┐         ┌─────────────────────┐
-                    │        User          │         │   👤 Human (you)    │
-                    │  "That's wrong,      ├─────────►  notified when      │
-                    │   I meant X not Y"   │ confused│  agent is stuck     │
-                    └──────────┬───────────┘         │                     │
-                               │ correction          │  "learned: always   │
-                    ┌──────────▼───────────┐         │   confirm X first"  │
-                    │  💡 Self-improvement  │◄────────┘                    │
-                    │  .glaivio/           │                               │
-                    │  corrections.json    │                               │
+                    ┌──────────▼───────────┐
+                    │     🧠  LLM          │  ← the brain
+                    │  Claude/GPT/Gemini   │    decides what to do
+                    └──────────┬───────────┘
+                               │
+        ┌──────────────────────┼──────────────────────┐
+        │                      │                      │
+┌───────▼────────┐  ┌──────────▼──────────┐  ┌───────▼────────┐
+│  @skill        │  │  @skill             │  │  @skill        │  ← the arms
+│  search_db()   │  │  send_email()       │  │  book_slot()   │    what it can do
+└───────┬────────┘  └──────────┬──────────┘  └───────┬────────┘
+        │                      │                      │
+        └──────────────────────▼──────────────────────┘
+                               │
+                    ┌──────────▼───────────┐
+                    │  📱 WhatsApp/SMS/Web  │  ← the mouth
+                    └──────────┬───────────┘    talks to users
+                               │
+                    ┌──────────▼───────────┐       ┌──────────────────────┐
+                    │        User          │       │   👤 Human operator  │
+                    │  "that's wrong,      ├──────►│   notified when      │
+                    │   I meant X not Y"   │ stuck │   agent is confused  │
+                    └──────────┬───────────┘       │                      │
+                               │ correction        │  replies "learned:   │
+                    ┌──────────▼───────────┐       │   always confirm X"  │
+                    │  💡 Self-improvement  │◄──────┘                     │
+                    │  agent gets smarter  │                              │
+                    │  with every mistake  │                              │
                     └──────────────────────┘
 ```
 
-The brain decides. The skills act. The channel talks. The human teaches. The agent gets smarter.
+One framework. One way to build. Every AI-native app follows the same pattern.
 
 ---
 
