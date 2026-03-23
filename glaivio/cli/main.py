@@ -24,9 +24,13 @@ def new(name):
         click.echo(f"Error: directory '{name}' already exists.")
         sys.exit(1)
 
+    click.echo(f"Creating {name}/...")
+
     # create folders
     (root / "skills").mkdir(parents=True)
     (root / "knowledge").mkdir(parents=True)
+    click.echo("  ✓ skills/")
+    click.echo("  ✓ knowledge/")
 
     # agent.py
     (root / "agent.py").write_text(f'''\
@@ -46,6 +50,7 @@ agent = Agent(
 if __name__ == "__main__":
     agent.run()
 ''')
+    click.echo("  ✓ agent.py")
 
     # skills/__init__.py
     (root / "skills" / "__init__.py").write_text("")
@@ -60,6 +65,7 @@ def hello(name: str) -> str:
     """Say hello to someone by name."""
     return f"Hello, {name}!"
 ''')
+    click.echo("  ✓ skills/example.py")
 
     # .env.example
     (root / ".env.example").write_text('''\
@@ -74,6 +80,7 @@ TWILIO_WHATSAPP_NUMBER=
 # Optional — switch channels
 GLAIVIO_CHANNEL=web
 ''')
+    click.echo("  ✓ .env.example")
 
     # .gitignore
     (root / ".gitignore").write_text('''\
@@ -82,19 +89,21 @@ __pycache__/
 *.pyc
 .venv/
 ''')
+    click.echo("  ✓ .gitignore")
 
     # requirements.txt
     (root / "requirements.txt").write_text('''\
 glaivio
 python-dotenv
 ''')
+    click.echo("  ✓ requirements.txt")
 
     click.echo(f"""
-✓ Created {name}/
+✓ {name}/ ready
 
-Get started:
+Next steps:
   cd {name}
-  cp .env.example .env
+  cp .env.example .env        # add your ANTHROPIC_API_KEY
   pip install -r requirements.txt
   glaivio run
 """)

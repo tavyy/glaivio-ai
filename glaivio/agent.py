@@ -54,6 +54,7 @@ class Agent:
         memory=None,
         privacy: bool = False,
         inject_date: bool = True,
+
         knowledge=None,
         max_messages: int = 20,
         on_confusion=None,
@@ -67,6 +68,7 @@ class Agent:
         self.inject_date = inject_date
         self.knowledge = knowledge
         self.max_messages = max_messages
+
         self.on_confusion = on_confusion
         self.learn_from_feedback = learn_from_feedback
         self._sessions: dict[str, any] = {}
@@ -87,7 +89,7 @@ class Agent:
         if self.knowledge:
             self._knowledge_tool = self.knowledge.build_retriever()
 
-    def _build_system(self) -> str:
+    def _build_system(self, user_id: str = None) -> str:
         """Build the system prompt including any learned corrections."""
         system = ""
         if self._learner:
@@ -95,6 +97,8 @@ class Agent:
         system += self.instructions
         if self.inject_date:
             system += f"\nToday is {datetime.date.today().strftime('%Y-%m-%d, %A')}."
+        if user_id:
+            system += f"\nThe current user's ID is: {user_id}"
         return system
 
     def _get_session(self, user_id: str):
@@ -102,7 +106,7 @@ class Agent:
         if user_id not in self._sessions:
             llm = _resolve_llm(self.model_name)
             checkpointer = self.memory.get_checkpointer()
-            system = self._build_system()
+            system = self._build_system(user_id)
             # combine skills + knowledge retriever
             all_tools = list(self.skills)
             if self._knowledge_tool:
