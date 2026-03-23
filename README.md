@@ -13,7 +13,7 @@ def get_weather(city: str) -> str:
     return f"Sunny, 22°C in {city}"
 
 agent = Agent(
-    instructions="You are a helpful assistant.",
+    instructions="prompts/system.md",
     skills=[get_weather],
 )
 
@@ -70,11 +70,47 @@ cp .env.example .env   # add your ANTHROPIC_API_KEY
 glaivio run
 ```
 
+This scaffolds:
+
+```
+my-app/
+├── prompts/
+│   └── system.md       ← write your agent's instructions here
+├── skills/
+│   └── example.py
+├── knowledge/
+├── agent.py
+├── .env.example
+└── requirements.txt
+```
+
 Open `http://localhost:8000` — your agent is running.
 
 ---
 
 ## Core Concepts
+
+### Prompts
+
+Write your agent's instructions in plain markdown — no string literals in code:
+
+```
+prompts/
+└── system.md
+```
+
+Point your agent at it:
+
+```python
+agent = Agent(
+    instructions="prompts/system.md",
+    ...
+)
+```
+
+Glaivio loads it automatically. Edit the prompt without touching `agent.py`.
+
+---
 
 ### Skills
 
@@ -85,22 +121,33 @@ from glaivio import skill
 
 @skill
 def book_appointment(name: str, date: str, time: str) -> str:
-    """Book a dental appointment. date: YYYY-MM-DD, time: HH:MM."""
+    """Book an appointment. date: YYYY-MM-DD, time: HH:MM."""
     # your logic here — call an API, write to a DB, anything
     return "Booked successfully"
 ```
 
 The docstring is what the agent reads to decide when to use the skill. Write it clearly.
 
+Skills that need to identify the current user can use `user_id` — Glaivio injects it automatically into every session:
+
+```python
+@skill
+def book_appointment(name: str, user_phone: str, date: str, time: str) -> str:
+    """Book an appointment. user_phone: use the current user's ID from context."""
+    ...
+```
+
+No closures. No wiring. It just works.
+
 ---
 
 ### Agent
 
 ```python
-from glaivio import Agent, skill
+from glaivio import Agent
 
 agent = Agent(
-    instructions="You are a dental receptionist. Keep replies short.",
+    instructions="prompts/system.md",
     skills=[book_appointment, check_availability],
     model="claude-haiku-4-5-20251001",   # or "gpt-4o", "gemini-2.0-flash", "ollama/llama3"
     max_messages=20,                      # context window per session
@@ -137,7 +184,7 @@ glaivio run
 from glaivio.memory import PostgresMemory
 
 agent = Agent(
-    instructions="...",
+    instructions="prompts/system.md",
     memory=PostgresMemory(url="postgresql://user:pass@localhost/mydb"),
 )
 ```
@@ -158,7 +205,7 @@ Drop files in and the agent searches them automatically:
 from glaivio.knowledge import Knowledge
 
 agent = Agent(
-    instructions="You are a helpful assistant.",
+    instructions="prompts/system.md",
     knowledge=Knowledge(["./faqs.md", "./pricing.pdf", "./policies.txt"]),
 )
 ```
@@ -179,7 +226,7 @@ When the agent can't handle something, escalate to a human:
 from glaivio.handoff import handoff_to_human
 
 agent = Agent(
-    instructions="You are a receptionist.",
+    instructions="prompts/system.md",
     on_confusion=handoff_to_human(notify="whatsapp:+447911111111"),
 )
 ```
@@ -194,10 +241,34 @@ Automatically redact PII before it reaches the LLM:
 
 ```python
 agent = Agent(
-    instructions="...",
+    instructions="prompts/system.md",
     privacy=True,  # redacts phone numbers, emails, NHS numbers, NI numbers
 )
 ```
+
+---
+
+### Learning from Feedback
+
+The agent learns from user corrections automatically:
+
+```python
+agent = Agent(
+    instructions="prompts/system.md",
+    skills=[book_appointment],
+    learn_from_feedback=True,
+)
+```
+
+When a user says *"that's wrong, I said Tuesday not Wednesday"* — the agent extracts the correction, stores it, and applies it to all future conversations:
+
+```
+[Learned from past conversations]
+- Always book the exact day the user specifies, never the next day
+- When user says Tuesday, confirm Tuesday before booking
+```
+
+Corrections persist in `.glaivio/corrections.json`. The agent gets smarter over time without any manual prompt editing.
 
 ---
 
@@ -233,30 +304,6 @@ glaivio deploy                          # generate Railway deployment files
 glaivio deploy --target render          # generate Render deployment files
 glaivio deploy --target fly             # generate Fly.io deployment files
 ```
-
----
-
-### Learning from Feedback
-
-The agent learns from user corrections automatically:
-
-```python
-agent = Agent(
-    instructions="You are a receptionist.",
-    skills=[book_appointment],
-    learn_from_feedback=True,
-)
-```
-
-When a user says *"that's wrong, I said Tuesday not Wednesday"* — the agent extracts the correction, stores it, and applies it to all future conversations:
-
-```
-[Learned from past conversations]
-- Always book the exact day the user specifies, never the next day
-- When user says Tuesday, confirm Tuesday before booking
-```
-
-Corrections persist in `.glaivio/corrections.json`. The agent gets smarter over time without any manual prompt editing.
 
 ---
 
@@ -316,35 +363,30 @@ Done. Your agent is live.
 
 ## Reference App
 
-The dental receptionist — a fully autonomous WhatsApp agent that books appointments, checks availability, and handles patient conversations 24/7:
+A fully autonomous WhatsApp dental receptionist — books appointments, checks availability, and handles patient conversations 24/7. Built in 20 lines:
 
 ```python
-from glaivio import Agent, skill
+from dotenv import load_dotenv
+load_dotenv()
+
+from glaivio import Agent
 from glaivio.handoff import handoff_to_human
 from glaivio.knowledge import Knowledge
-
-@skill
-def check_availability(date: str, time: str) -> str:
-    """Check if a slot is free. date: YYYY-MM-DD, time: HH:MM."""
-    ...
-
-@skill
-def book_appointment(name: str, date: str, time: str) -> str:
-    """Book a dental appointment. Only call after check_availability."""
-    ...
+from skills.check_availability import check_availability
+from skills.book_appointment import book_appointment
+from skills.cancel_appointment import cancel_appointment
 
 agent = Agent(
-    instructions="You are a receptionist for Bright Smile Dental. Keep replies short.",
-    skills=[check_availability, book_appointment],
+    instructions="prompts/system.md",
+    skills=[check_availability, book_appointment, cancel_appointment],
     knowledge=Knowledge(["./faqs.md"]),
-    on_confusion=handoff_to_human(notify="whatsapp:+447911111111"),
+    on_confusion=handoff_to_human(notify="whatsapp:+447911111111", learn=True),
+    learn_from_feedback=True,
     privacy=True,
 )
 
 agent.run(channel="whatsapp")
 ```
-
-Built in 20 lines. Running in production.
 
 ---
 
