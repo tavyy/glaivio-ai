@@ -29,8 +29,18 @@ def new(name):
     # create folders
     (root / "skills").mkdir(parents=True)
     (root / "knowledge").mkdir(parents=True)
+    (root / "prompts").mkdir(parents=True)
     click.echo("  ✓ skills/")
     click.echo("  ✓ knowledge/")
+    click.echo("  ✓ prompts/")
+
+    # prompts/system.md
+    (root / "prompts" / "system.md").write_text('''\
+You are a helpful assistant.
+
+Keep replies concise and friendly.
+''')
+    click.echo("  ✓ prompts/system.md")
 
     # agent.py
     (root / "agent.py").write_text(f'''\
@@ -43,7 +53,7 @@ load_dotenv()
 from skills.example import hello
 
 agent = Agent(
-    instructions="You are a helpful assistant.",
+    instructions="prompts/system.md",
     skills=[hello],
 )
 

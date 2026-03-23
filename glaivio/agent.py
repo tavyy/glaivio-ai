@@ -1,9 +1,18 @@
 import datetime
+from pathlib import Path
 from langchain_core.messages import HumanMessage, BaseMessage
 from langchain_core.language_models import BaseChatModel
 from langgraph.prebuilt import create_react_agent
 
 from .memory.in_memory import InMemory
+
+
+def _resolve_instructions(instructions: str) -> str:
+    """If instructions is a file path, load it. Otherwise return as-is."""
+    p = Path(instructions)
+    if p.suffix in (".md", ".txt") and p.exists():
+        return p.read_text()
+    return instructions
 
 
 def _trim_messages(messages: list[BaseMessage], max_messages: int) -> list[BaseMessage]:
@@ -60,7 +69,7 @@ class Agent:
         on_confusion=None,
         learn_from_feedback: bool = False,
     ):
-        self.instructions = instructions
+        self.instructions = _resolve_instructions(instructions)
         self.skills = skills or []
         self.model_name = model
         self.memory = memory or InMemory()
