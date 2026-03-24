@@ -307,24 +307,34 @@ glaivio run
 
 ### Memory
 
-Default is in-memory (zero config). Switch to Postgres for production — conversation history survives restarts.
+By default Glaivio uses in-memory storage — zero config, works immediately. Conversation history is lost when the server restarts.
 
-```bash
-pip install glaivio-ai[postgres]
-```
+For production, switch to Postgres — history survives restarts, works across multiple instances.
 
-Add to your `.env`:
+**1. Add your database URL to `.env`:**
 ```
 DATABASE_URL=postgresql://user:pass@localhost/mydb
 ```
 
-Run migrations once before starting:
+**2. Run migrations once** (creates Langgraph checkpoint tables + Glaivio's own session table):
 ```bash
 glaivio migrate
 ```
 
+Output:
+```
+Running Glaivio migrations...
+  ✓ Database 'mydb' already exists
+  ✓ Langgraph checkpoint tables
+  ✓ glaivio_sessions table
+
+✓ Migrations complete.
+```
+
+**3. Use `PostgresMemory` in your agent:**
 ```python
 import os
+from glaivio import Agent
 from glaivio.memory import PostgresMemory
 
 agent = Agent(
@@ -332,6 +342,10 @@ agent = Agent(
     memory=PostgresMemory(url=os.getenv("DATABASE_URL")),
 )
 ```
+
+Glaivio creates and maintains two sets of tables:
+- **Langgraph checkpoint tables** — full message history per user, keyed by their ID
+- **`glaivio_sessions`** — your own table tracking `user_id`, `channel`, `message_count`, `tokens_used`, `last_seen`
 
 ---
 
@@ -497,12 +511,6 @@ railway up
 ```
 
 Done. Your agent is live.
-
----
-
-## Status
-
-> ⚠️ Glaivio is v0.1 — early and actively developed. Great for prototyping and demos. Production hardening (error handling, retries, webhook security) coming in v0.2.
 
 ---
 
