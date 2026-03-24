@@ -103,7 +103,7 @@ __pycache__/
 
     # requirements.txt
     (root / "requirements.txt").write_text('''\
-glaivio
+glaivio-ai
 python-dotenv
 ''')
     click.echo("  ✓ requirements.txt")

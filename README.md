@@ -97,6 +97,15 @@ If you want full control and flexibility — use Langchain. If you want to ship 
 
 ---
 
+## Prerequisites
+
+- Python 3.10+
+- An [Anthropic API key](https://console.anthropic.com/) — Glaivio uses Claude by default
+- For WhatsApp/SMS: a [Twilio account](https://twilio.com) with a WhatsApp-enabled number
+- For Postgres memory: a running Postgres instance
+
+---
+
 ## Install
 
 ```bash
@@ -211,7 +220,25 @@ if __name__ == "__main__":
 glaivio run --channel whatsapp
 ```
 
-Point your Twilio webhook at `POST https://your-domain/webhook/whatsapp`. Done.
+For local testing, expose your server with [ngrok](https://ngrok.com):
+
+```bash
+ngrok http 8000
+```
+
+Then in your [Twilio WhatsApp sandbox](https://console.twilio.com), set the webhook URL to:
+```
+https://<your-ngrok-id>.ngrok.io/webhook/whatsapp
+```
+
+Add to your `.env`:
+```
+TWILIO_ACCOUNT_SID=your_sid
+TWILIO_AUTH_TOKEN=your_token
+TWILIO_WHATSAPP_NUMBER=whatsapp:+14155238886
+```
+
+Send a WhatsApp message to your Twilio number. Your agent replies.
 
 ---
 
