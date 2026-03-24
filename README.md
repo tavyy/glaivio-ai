@@ -543,20 +543,48 @@ Done. Your agent is live.
 
 ## Roadmap
 
-**v0.3**
-- [ ] Token usage tracking and cost dashboard
+**v0.2 — Memory & persistence** ✅
+- [x] Postgres memory — conversation history survives restarts
+- [x] One-command database setup — tables created automatically, no manual SQL
+- [x] Session tracking — per-user metadata (channel, message count, last seen)
+- [x] Instructions in markdown — prompts live in files, not code
+- [x] User ID injection — skills always know who they're talking to
+- [x] Self-improvement — agent learns from user corrections automatically
+- [x] Human handoff — escalate to operator when confused, operator teaches agent
+
+**v0.3 — Observability**
+- [ ] Token usage tracking per session, per user, per channel
+- [ ] Cost dashboard — see exactly what each conversation costs
+- [ ] Structured logs — every message, skill call, and result in one place
 - [ ] Twilio webhook signature verification
-- [ ] Error handling and automatic retries
-- [ ] Telegram channel
 
-**v0.4**
-- [ ] Built-in skills library (`glaivio.skills.google_calendar`, `glaivio.skills.stripe`, `glaivio.skills.hubspot`)
-- [ ] Conscious/unconscious memory — smart context retrieval instead of fixed message windows
-- [ ] `glaivio test` improvements — better eval reporting
+**v0.4 — Human handover (full loop)**
+- [ ] Improved confusion detection — smarter signals beyond keyword matching
+- [ ] Full handover UI — operator sees full conversation history before taking over
+- [ ] Handover analytics — how often does the agent get stuck, on what topics
+- [ ] Automatic resume after operator resolves the conversation
 
-**v1.0**
-- [ ] Glaivio Cloud — one command deploy, hosted memory, observability dashboard
-- [ ] Production hardening — connection pooling, rate limiting, health checks
+**v0.5 — Self-learning**
+- [ ] Feedback learning v2 — agent detects corrections across more signals
+- [ ] Rule conflict resolution — when two learned rules contradict each other
+- [ ] Learning dashboard — see what the agent has learned, edit or remove rules
+
+**v0.6 — Conscious / unconscious memory**
+- [ ] Two-tier memory system inspired by how humans think:
+  - **Conscious** — recent conversation, active context (already in v0.2)
+  - **Unconscious** — long-term facts about the user, retrieved semantically when relevant
+- [ ] User profile store — agent remembers preferences, past interactions, stated facts
+- [ ] Smart context injection — only pull in what's relevant to the current message
+- [ ] Memory decay — old facts fade unless reinforced
+
+**v0.7 — Skills library**
+- [ ] Built-in skills for common integrations — calendars, payments, CRMs, messaging
+- [ ] Import skills from community marketplaces — one line to add a pre-built skill
+
+**v1.0 — Glaivio Cloud**
+- [ ] One command deploy to the cloud
+- [ ] Hosted memory, observability, and token dashboard out of the box
+- [ ] No infrastructure to manage
 
 ---
 
