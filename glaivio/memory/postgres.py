@@ -1,4 +1,3 @@
-import psycopg2
 from .base import BaseMemory
 
 
@@ -47,6 +46,7 @@ class PostgresMemory(BaseMemory):
         self._conn = None
 
     def _get_conn(self):
+        import psycopg2
         if self._conn is None or self._conn.closed:
             self._conn = psycopg2.connect(self.url)
         return self._conn
@@ -85,8 +85,9 @@ class PostgresMemory(BaseMemory):
             )
 
         try:
-            ctx = PostgresSaver.from_conn_string(self.url)
-            saver = ctx.__enter__()
+            import psycopg
+            conn = psycopg.connect(self.url, autocommit=True)
+            saver = PostgresSaver(conn)
             saver.setup()
             self._checkpointer = saver
             print("[Glaivio] Postgres memory connected.")
