@@ -19,6 +19,7 @@ dependencies = [
     "langchain-anthropic",
     "langgraph",
     "psycopg2-binary",
+    "langgraph-checkpoint-postgres",
 ]
 
 [project.scripts]
