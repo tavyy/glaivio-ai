@@ -307,19 +307,25 @@ glaivio run
 
 ### Memory
 
+Default is in-memory (zero config). Switch to Postgres for production — conversation history survives restarts.
+
+```bash
+pip install glaivio-ai[postgres]
+```
+
+Add to your `.env`:
+```
+DATABASE_URL=postgresql://user:pass@localhost/mydb
+```
+
 ```python
+import os
 from glaivio.memory import PostgresMemory
 
 agent = Agent(
     instructions="prompts/system.md",
-    memory=PostgresMemory(url="postgresql://user:pass@localhost/mydb"),
+    memory=PostgresMemory(url=os.getenv("DATABASE_URL")),
 )
-```
-
-Default is in-memory (zero config). Switch to Postgres for production — conversation history survives restarts.
-
-```bash
-pip install glaivio[postgres]
 ```
 
 ---

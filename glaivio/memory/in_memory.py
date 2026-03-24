@@ -8,5 +8,8 @@ class InMemory(BaseMemory):
     Conversation history is lost when the process restarts.
     """
 
+    def __init__(self):
+        self._checkpointer = MemorySaver()
+
     def get_checkpointer(self):
-        return MemorySaver()
+        return self._checkpointer
