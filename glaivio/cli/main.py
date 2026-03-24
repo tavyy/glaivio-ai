@@ -161,8 +161,8 @@ def migrate(database_url):
 
     try:
         from langgraph.checkpoint.postgres import PostgresSaver
-        saver = PostgresSaver.from_conn_string(url)
-        saver.setup()
+        with PostgresSaver.from_conn_string(url) as saver:
+            saver.setup()
         click.echo("  ✓ Langgraph checkpoint tables")
     except ImportError:
         click.echo("  ✗ Langgraph checkpoint tables skipped (install glaivio-ai[postgres])")

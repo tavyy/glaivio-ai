@@ -85,9 +85,9 @@ class PostgresMemory(BaseMemory):
             )
 
         try:
-            saver = PostgresSaver.from_conn_string(self.url)
-            saver.setup()  # creates Langgraph's checkpoint tables
-            self._checkpointer = saver
+            with PostgresSaver.from_conn_string(self.url) as saver:
+                saver.setup()
+            self._checkpointer = PostgresSaver.from_conn_string(self.url)
             print("[Glaivio] Postgres memory connected.")
             return self._checkpointer
         except Exception as e:
