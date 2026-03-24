@@ -119,6 +119,49 @@ Next steps:
 """)
 
 
+# ── glaivio migrate ───────────────────────────────────────────────────────────
+
+@cli.command()
+@click.option("--database-url", default=None, help="Postgres connection URL. Falls back to DATABASE_URL env var.")
+def migrate(database_url):
+    """Run database migrations. Must be run before starting the agent with Postgres memory."""
+    from dotenv import load_dotenv
+    load_dotenv()
+
+    url = database_url or os.getenv("DATABASE_URL")
+    if not url:
+        click.echo("Error: no database URL provided. Set DATABASE_URL in .env or pass --database-url.")
+        sys.exit(1)
+
+    click.echo("Running Glaivio migrations...")
+
+    try:
+        from langgraph.checkpoint.postgres import PostgresSaver
+        saver = PostgresSaver.from_conn_string(url)
+        saver.setup()
+        click.echo("  ✓ Langgraph checkpoint tables")
+    except ImportError:
+        click.echo("  ✗ Langgraph checkpoint tables skipped (install glaivio-ai[postgres])")
+    except Exception as e:
+        click.echo(f"  ✗ Langgraph checkpoint tables failed: {e}")
+        sys.exit(1)
+
+    try:
+        import psycopg2
+        from glaivio.memory.postgres import CREATE_SESSIONS_TABLE
+        conn = psycopg2.connect(url)
+        with conn.cursor() as cur:
+            cur.execute(CREATE_SESSIONS_TABLE)
+        conn.commit()
+        conn.close()
+        click.echo("  ✓ glaivio_sessions table")
+    except Exception as e:
+        click.echo(f"  ✗ glaivio_sessions table failed: {e}")
+        sys.exit(1)
+
+    click.echo("\n✓ Migrations complete.")
+
+
 # ── glaivio run ───────────────────────────────────────────────────────────────
 
 @cli.command()

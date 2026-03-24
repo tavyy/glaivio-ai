@@ -318,6 +318,11 @@ Add to your `.env`:
 DATABASE_URL=postgresql://user:pass@localhost/mydb
 ```
 
+Run migrations once before starting:
+```bash
+glaivio migrate
+```
+
 ```python
 import os
 from glaivio.memory import PostgresMemory
@@ -432,6 +437,7 @@ glaivio new my-app                      # scaffold a project
 glaivio run                             # start the agent
 glaivio run --channel whatsapp          # start on a specific channel
 glaivio generate skill BookAppointment  # generate a skill stub
+glaivio migrate                         # run database migrations (Postgres only)
 glaivio test                            # run evaluations
 glaivio deploy                          # generate Railway deployment files
 glaivio deploy --target render          # generate Render deployment files
