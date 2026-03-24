@@ -126,7 +126,7 @@ Next steps:
 def migrate(database_url):
     """Run database migrations. Must be run before starting the agent with Postgres memory."""
     from dotenv import load_dotenv
-    load_dotenv()
+    load_dotenv(override=True)
 
     url = database_url or os.getenv("DATABASE_URL")
     if not url:
@@ -194,7 +194,7 @@ def migrate(database_url):
 def run(channel, port):
     """Start the agent. Reads GLAIVIO_CHANNEL from .env if --channel not set."""
     from dotenv import load_dotenv
-    load_dotenv()
+    load_dotenv(override=True)
 
     # ensure project directory is on sys.path so skills/ and other local modules import correctly
     if str(Path.cwd()) not in sys.path:
