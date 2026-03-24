@@ -351,7 +351,7 @@ agent = Agent(
 Supports `.txt`, `.md`, `.pdf`. No configuration needed.
 
 ```bash
-pip install glaivio[knowledge]
+pip install glaivio-ai[knowledge]
 ```
 
 ---
@@ -500,122 +500,9 @@ Done. Your agent is live.
 
 ---
 
-## Example: AI Receptionist
+## Status
 
-A fully autonomous WhatsApp receptionist — books appointments, handles FAQs, escalates to a human when stuck, and gets smarter over time. Built in 4 steps.
-
-### Step 1 — Scaffold the project
-
-```bash
-glaivio new my-receptionist
-cd my-receptionist
-cp .env.example .env   # add your ANTHROPIC_API_KEY
-```
-
-### Step 2 — Write the prompt
-
-Edit `prompts/system.md`:
-
-```markdown
-You are an AI receptionist for Bright Smile Dental.
-
-Keep replies SHORT — this is a text message. Max 2 sentences. No bullet points.
-
-Practice info:
-- Address: 123 High Street, London
-- Phone: 020 7946 0958
-- Hours: Mon-Fri 8am-6pm, Sat 9am-2pm
-
-When booking: ask for name, date and time. Always call check_availability first.
-If the slot is taken, offer the alternatives the tool returns.
-When rescheduling: cancel the old appointment first, then book the new one.
-If medical or urgent, tell them to call the office directly.
-```
-
-### Step 3 — Add your skills
-
-```bash
-glaivio generate skill CheckAvailability
-glaivio generate skill BookAppointment
-glaivio generate skill CancelAppointment
-```
-
-Fill in the logic in `skills/`:
-
-```python
-# skills/check_availability.py
-from glaivio import skill
-
-@skill
-def check_availability(date: str, time: str) -> str:
-    """Check if a time slot is available. Always call before booking.
-    date: YYYY-MM-DD, time: HH:MM 24h format."""
-    # call your calendar API here
-    return "Available"
-```
-
-```python
-# skills/book_appointment.py
-from glaivio import skill
-
-@skill
-def book_appointment(name: str, user_phone: str, date: str, time: str) -> str:
-    """Book an appointment. Only call after check_availability confirms the slot is free.
-    user_phone: use the current user's ID from context.
-    date: YYYY-MM-DD, time: HH:MM 24h format."""
-    # call your calendar API here
-    return f"Booked {name} on {date} at {time}"
-```
-
-```python
-# skills/cancel_appointment.py
-from glaivio import skill
-
-@skill
-def cancel_appointment(user_phone: str, date: str) -> str:
-    """Cancel an existing appointment on a given date.
-    user_phone: use the current user's ID from context.
-    date: YYYY-MM-DD format."""
-    # call your calendar API here
-    return f"Cancelled appointment on {date}"
-```
-
-### Step 4 — Wire it up
-
-```python
-# agent.py
-from dotenv import load_dotenv
-load_dotenv()
-
-from glaivio import Agent
-from glaivio.handoff import handoff_to_human
-from glaivio.knowledge import Knowledge
-from skills.check_availability import check_availability
-from skills.book_appointment import book_appointment
-from skills.cancel_appointment import cancel_appointment
-
-agent = Agent(
-    instructions="prompts/system.md",
-    skills=[check_availability, book_appointment, cancel_appointment],
-    knowledge=Knowledge(["./faqs.md"]),          # optional — drop in your FAQs
-    on_confusion=handoff_to_human(               # escalate when stuck
-        notify="whatsapp:+447911111111",
-        learn=True,                              # operator can teach via WhatsApp
-    ),
-    learn_from_feedback=True,                    # learns from user corrections
-    privacy=True,                                # redacts PII before it hits the LLM
-)
-
-agent.run(channel="whatsapp")
-```
-
-### Run it
-
-```bash
-glaivio run --channel whatsapp
-```
-
-Point your Twilio webhook at `POST https://your-domain/webhook/whatsapp`. Done.
+> ⚠️ Glaivio is v0.1 — early and actively developed. Great for prototyping and demos. Production hardening (error handling, retries, webhook security) coming in v0.2.
 
 ---
 
