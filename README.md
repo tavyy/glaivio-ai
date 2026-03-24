@@ -1,6 +1,8 @@
 # Glaivio
 
-**The opinionated framework for AI-native apps.**
+**The framework for building AI agents you can actually trust in production.**
+
+Not just agents that demo well — agents that remember users, recover from mistakes, escalate when stuck, and get smarter over time.
 
 Rails did it for web apps. Next.js did it for React. Glaivio does it for AI agents.
 
@@ -24,9 +26,160 @@ That's it. Your agent is live on WhatsApp.
 
 ---
 
-## How it works
+## Install
 
-Glaivio gives every AI-native app the same anatomy:
+```bash
+pip install glaivio-ai
+```
+
+---
+
+## Quickstart
+
+An AI receptionist that books appointments over WhatsApp — in 5 steps.
+
+**1. Scaffold your project**
+
+```bash
+glaivio new my-receptionist
+cd my-receptionist
+cp .env.example .env   # add your ANTHROPIC_API_KEY
+```
+
+**2. Write your prompt** — `prompts/system.md`
+
+```markdown
+You are an AI receptionist for Bright Smile Dental.
+
+Your job is to help patients via WhatsApp. Keep replies SHORT — this is a text message.
+Max 2 sentences. Never use bullet points or markdown.
+
+When booking: ask for name, date and time. Always call check_availability first.
+If the slot is taken, offer the alternatives the tool returns.
+If medical or urgent, tell them to call the office directly.
+```
+
+**3. Define your skills**
+
+```python
+# skills/check_availability.py
+from glaivio import skill
+
+@skill
+def check_availability(date: str, time: str) -> str:
+    """Check if a time slot is available. Always call before book_appointment.
+    date: YYYY-MM-DD, time: HH:MM 24h format."""
+    # call your calendar API here
+    return "Available"
+```
+
+```python
+# skills/book_appointment.py
+from glaivio import skill
+
+@skill
+def book_appointment(patient_name: str, patient_phone: str, date: str, time: str) -> str:
+    """Book an appointment. Only call after check_availability confirms the slot is free.
+    patient_phone: use the current user's ID from context.
+    date: YYYY-MM-DD, time: HH:MM 24h format."""
+    # call your calendar API here
+    return f"Booked {patient_name} on {date} at {time}"
+```
+
+**4. Wire it up** — `agent.py`
+
+```python
+from dotenv import load_dotenv
+load_dotenv()
+
+from glaivio import Agent
+from skills.check_availability import check_availability
+from skills.book_appointment import book_appointment
+
+agent = Agent(
+    instructions="prompts/system.md",
+    skills=[check_availability, book_appointment],
+    learn_from_feedback=True,
+    privacy=True,
+)
+
+if __name__ == "__main__":
+    agent.run(channel="whatsapp")
+```
+
+**5. Run it**
+
+```bash
+glaivio run --channel whatsapp
+```
+
+For local testing, expose your server with [ngrok](https://ngrok.com) and point your [Twilio WhatsApp sandbox](https://console.twilio.com) webhook at:
+```
+https://<your-ngrok-id>.ngrok.io/webhook/whatsapp
+```
+
+Send a WhatsApp message to your Twilio number. Your agent replies.
+
+---
+
+## What ships out of the box
+
+**Persistent memory** — conversation history survives restarts with Postgres. Zero config in development, one line to switch in production.
+
+**Self-improvement** — when a user corrects the agent, it stores the lesson and applies it to all future conversations. No prompt editing required.
+
+**Human handoff** — when the agent is stuck, it notifies a human operator via WhatsApp or SMS and holds the conversation until they take over.
+
+**PII redaction** — phone numbers, emails, and sensitive identifiers are automatically stripped before they reach the LLM.
+
+**Multi-channel** — the same agent runs on WhatsApp, SMS, or a web chat UI. Switch with one line.
+
+**Multi-model** — Claude, GPT, Gemini, or local models via Ollama. Swap with one param.
+
+---
+
+## Why Glaivio?
+
+An **AI agent** is an LLM that can take actions, remember things, and talk to users through a channel. Building one from scratch means solving the same problems every time:
+
+- Which LLM? How do I swap between them?
+- How do I give it memory across conversations?
+- How do I connect it to WhatsApp or SMS?
+- How do I pass the user's identity into a tool call?
+- How do I redact sensitive data before it hits the LLM?
+- How do I escalate to a human when it gets stuck?
+- How do I deploy it?
+- How do I test it when I change the prompt?
+
+There are no standard answers. Every team solves these differently, from scratch, every time.
+
+LangChain gives you the primitives — a way to call LLMs, define tools, chain them together. But you still wire everything else yourself. It's powerful, but it's not a framework. It's Lego with no instructions.
+
+**Glaivio makes the decisions for you.**
+
+| | LangChain | Glaivio |
+|---|---|---|
+| Define a tool | ✅ | ✅ |
+| Swap LLM providers | ✅ | ✅ |
+| Memory across sessions | You build it | Built in |
+| WhatsApp / SMS channels | You build it | Built in |
+| User ID in every skill | You build it | Built in |
+| PII redaction | You build it | One flag |
+| Human handoff | You build it | One line |
+| Agent self-improvement | You build it | One flag |
+| Deployment | You figure it out | One command |
+
+```
+Web era     → Rails      (2004)  — one way to build web apps
+Frontend    → Next.js    (2016)  — one way to build React apps
+Agent era   → Glaivio    (2026)  — one way to build AI agents
+```
+
+Convention over configuration — the same philosophy that made Rails dominate web development for a decade. If you want full control — use LangChain. If you want to ship in hours not weeks — use Glaivio.
+
+---
+
+## How it works
 
 ```
                     ┌──────────────────────┐
@@ -64,182 +217,6 @@ Glaivio gives every AI-native app the same anatomy:
                     └──────────────────────┘
 ```
 
-One framework. One way to build. Every AI-native app follows the same pattern.
-
----
-
-## Why Glaivio?
-
-Every developer building an AI agent today faces the same problems:
-
-- Which LLM? How do I swap between them?
-- How do I give it memory across conversations?
-- How do I connect it to WhatsApp or SMS?
-- How do I give it tools without breaking everything?
-- How do I deploy it?
-- How do I test it when I change the prompt?
-
-There are no standard answers. Every team solves these differently, from scratch, every time.
-
-Langchain and similar SDKs give you the primitives — but you still wire everything together yourself. It's powerful and flexible, but it's not a framework. It's Lego with no instructions.
-
-**Glaivio makes the decisions for you.**
-
-One way to define skills. One way to add memory. One way to connect channels. One command to deploy. Convention over configuration — the same philosophy that made Rails dominate web development for a decade.
-
-```
-Web era     → Rails      (2004)  — one way to build web apps
-Frontend    → Next.js    (2016)  — one way to build React apps
-Agent era   → Glaivio    (2026)  — one way to build AI-native apps
-```
-
-If you want full control and flexibility — use Langchain. If you want to ship in hours not weeks — use Glaivio.
-
----
-
-## Prerequisites
-
-- Python 3.10+
-- An [Anthropic API key](https://console.anthropic.com/) — Glaivio uses Claude by default
-- For WhatsApp/SMS: a [Twilio account](https://twilio.com) with a WhatsApp-enabled number
-- For Postgres memory: a running Postgres instance
-
----
-
-## Install
-
-```bash
-pip install glaivio-ai
-```
-
----
-
-## Quickstart
-
-Here's a real example — an AI receptionist that books appointments over WhatsApp.
-
-**1. Scaffold**
-
-```bash
-glaivio new my-receptionist
-cd my-receptionist
-cp .env.example .env   # add your ANTHROPIC_API_KEY
-```
-
-**2. Write your prompt** — `prompts/system.md`
-
-```markdown
-You are an AI receptionist for Bright Smile Dental.
-
-Your job is to help patients via WhatsApp. Keep replies SHORT — this is a text message.
-Max 2 sentences. Never use bullet points or markdown.
-
-Practice info:
-- Address: 123 High Street, London
-- Hours: Mon-Fri 8am-6pm, Sat 9am-2pm
-
-When booking: ask for name, date and time. Always call check_availability first.
-If the slot is taken, offer the alternatives the tool returns.
-When rescheduling: cancel the old appointment first, then book the new one.
-If medical or urgent, tell them to call the office directly.
-```
-
-**3. Generate your skills**
-
-```bash
-glaivio generate skill CheckAvailability
-glaivio generate skill BookAppointment
-glaivio generate skill CancelAppointment
-```
-
-Fill in the logic — skills are just functions:
-
-```python
-# skills/check_availability.py
-from glaivio import skill
-
-@skill
-def check_availability(date: str, time: str) -> str:
-    """Check if a time slot is available. Always call before book_appointment.
-    date: YYYY-MM-DD, time: HH:MM 24h format."""
-    # call your calendar API here
-    return "Available"
-```
-
-```python
-# skills/book_appointment.py
-from glaivio import skill
-
-@skill
-def book_appointment(patient_name: str, patient_phone: str, date: str, time: str) -> str:
-    """Book an appointment. Only call after check_availability confirms the slot is free.
-    patient_phone: use the current user's ID from context.
-    date: YYYY-MM-DD, time: HH:MM 24h format."""
-    # call your calendar API here
-    return f"Booked {patient_name} on {date} at {time}"
-```
-
-```python
-# skills/cancel_appointment.py
-from glaivio import skill
-
-@skill
-def cancel_appointment(patient_phone: str, date: str) -> str:
-    """Cancel an existing appointment on a given date.
-    patient_phone: use the current user's ID from context.
-    date: YYYY-MM-DD format."""
-    # call your calendar API here
-    return f"Cancelled appointment on {date}"
-```
-
-**4. Wire it up** — `agent.py`
-
-```python
-from dotenv import load_dotenv
-load_dotenv()
-
-from glaivio import Agent
-from skills.check_availability import check_availability
-from skills.book_appointment import book_appointment
-from skills.cancel_appointment import cancel_appointment
-
-agent = Agent(
-    instructions="prompts/system.md",
-    skills=[check_availability, book_appointment, cancel_appointment],
-    learn_from_feedback=True,
-    privacy=True,
-)
-
-if __name__ == "__main__":
-    agent.run(channel="whatsapp")
-```
-
-**5. Run it**
-
-```bash
-glaivio run --channel whatsapp
-```
-
-For local testing, expose your server with [ngrok](https://ngrok.com):
-
-```bash
-ngrok http 8000
-```
-
-Then in your [Twilio WhatsApp sandbox](https://console.twilio.com), set the webhook URL to:
-```
-https://<your-ngrok-id>.ngrok.io/webhook/whatsapp
-```
-
-Add to your `.env`:
-```
-TWILIO_ACCOUNT_SID=your_sid
-TWILIO_AUTH_TOKEN=your_token
-TWILIO_WHATSAPP_NUMBER=whatsapp:+14155238886
-```
-
-Send a WhatsApp message to your Twilio number. Your agent replies.
-
 ---
 
 ## Core Concepts
@@ -252,8 +229,6 @@ Write your agent's instructions in plain markdown — no string literals in code
 prompts/
 └── system.md
 ```
-
-Point your agent at it:
 
 ```python
 agent = Agent(
@@ -282,7 +257,7 @@ def book_appointment(name: str, date: str, time: str) -> str:
 
 The docstring is what the agent reads to decide when to use the skill. Write it clearly.
 
-Skills that need to identify the current user can use `user_id` — Glaivio injects it automatically into every session:
+Skills always know who they're talking to — Glaivio injects the current user's ID automatically:
 
 ```python
 @skill
@@ -312,8 +287,6 @@ agent = Agent(
 
 ### Channels
 
-Run your agent on any channel:
-
 ```python
 agent.run(channel="web")        # browser chat UI + REST API
 agent.run(channel="whatsapp")   # Twilio WhatsApp webhook
@@ -325,40 +298,14 @@ Or set it in `.env`:
 GLAIVIO_CHANNEL=whatsapp
 ```
 
-Then just run:
-```bash
-glaivio run
-```
-
 ---
 
 ### Memory
 
-By default Glaivio uses in-memory storage — zero config, works immediately. Conversation history is lost when the server restarts.
+Zero config by default — conversation history lives in memory, works immediately.
 
-For production, switch to Postgres — history survives restarts, works across multiple instances.
+For production, switch to Postgres:
 
-**1. Add your database URL to `.env`:**
-```
-DATABASE_URL=postgresql://user:pass@localhost/mydb
-```
-
-**2. Run migrations once** (creates Langgraph checkpoint tables + Glaivio's own session table):
-```bash
-glaivio migrate
-```
-
-Output:
-```
-Running Glaivio migrations...
-  ✓ Database 'mydb' already exists
-  ✓ Langgraph checkpoint tables
-  ✓ glaivio_sessions table
-
-✓ Migrations complete.
-```
-
-**3. Use `PostgresMemory` in your agent:**
 ```python
 import os
 from glaivio import Agent
@@ -370,9 +317,7 @@ agent = Agent(
 )
 ```
 
-Glaivio creates and maintains two sets of tables:
-- **Langgraph checkpoint tables** — full message history per user, keyed by their ID
-- **`glaivio_sessions`** — your own table tracking `user_id`, `channel`, `message_count`, `tokens_used`, `last_seen`
+Add `DATABASE_URL` to your `.env` and run `glaivio migrate` once to create the tables. History now survives restarts and works across multiple instances.
 
 ---
 
@@ -389,11 +334,7 @@ agent = Agent(
 )
 ```
 
-Supports `.txt`, `.md`, `.pdf`. No configuration needed.
-
-```bash
-pip install glaivio-ai[knowledge]
-```
+Supports `.txt`, `.md`, `.pdf`. Requires `pip install glaivio-ai[knowledge]`.
 
 ---
 
@@ -439,21 +380,13 @@ agent = Agent(
 )
 ```
 
-When a user says *"that's wrong, I said Tuesday not Wednesday"* — the agent extracts the correction, stores it, and applies it to all future conversations:
-
-```
-[Learned from past conversations]
-- Always book the exact day the user specifies, never the next day
-- When user says Tuesday, confirm Tuesday before booking
-```
-
-Corrections persist in `.glaivio/corrections.json`. The agent gets smarter over time without any manual prompt editing.
+When a user says *"that's wrong, I said Tuesday not Wednesday"* — the agent extracts the correction, stores it, and applies it to all future conversations. No prompt editing required.
 
 ---
 
 ### Structured Extraction
 
-Extract structured data from natural language — no prompt writing:
+Extract structured data from natural language:
 
 ```python
 from pydantic import BaseModel
@@ -463,27 +396,21 @@ class BookingRequest(BaseModel):
     name: str
     date: str   # YYYY-MM-DD
     time: str   # HH:MM
-    reason: str = "Appointment"
 
 booking = extract(BookingRequest, from_message="I need Tuesday 10am, I'm John Smith")
-# → BookingRequest(name="John Smith", date="2026-03-25", time="10:00", reason="Appointment")
+# → BookingRequest(name="John Smith", date="2026-03-25", time="10:00")
 ```
 
 ---
 
-## CLI
+## Supported Models
 
-```bash
-glaivio new my-app                      # scaffold a project
-glaivio run                             # start the agent
-glaivio run --channel whatsapp          # start on a specific channel
-glaivio generate skill BookAppointment  # generate a skill stub
-glaivio migrate                         # run database migrations (Postgres only)
-glaivio test                            # run evaluations
-glaivio deploy                          # generate Railway deployment files
-glaivio deploy --target render          # generate Render deployment files
-glaivio deploy --target fly             # generate Fly.io deployment files
-```
+| Prefix | Provider | Example |
+|--------|----------|---------|
+| `claude-` | Anthropic | `claude-haiku-4-5-20251001` |
+| `gpt-` | OpenAI | `gpt-4o` |
+| `gemini-` | Google | `gemini-2.0-flash` |
+| `ollama/` | Local (Ollama) | `ollama/llama3` |
 
 ---
 
@@ -513,17 +440,6 @@ Change your instructions and run again — regressions are caught automatically.
 
 ---
 
-## Supported Models
-
-| Prefix | Provider | Example |
-|--------|----------|---------|
-| `claude-` | Anthropic | `claude-haiku-4-5-20251001` |
-| `gpt-` | OpenAI | `gpt-4o` |
-| `gemini-` | Google | `gemini-2.0-flash` |
-| `ollama/` | Local (Ollama) | `ollama/llama3` |
-
----
-
 ## Deploy
 
 ```bash
@@ -538,6 +454,22 @@ railway up
 ```
 
 Done. Your agent is live.
+
+---
+
+## CLI
+
+```bash
+glaivio new my-app                      # scaffold a project
+glaivio run                             # start the agent
+glaivio run --channel whatsapp          # start on a specific channel
+glaivio generate skill BookAppointment  # generate a skill stub
+glaivio migrate                         # run database migrations (Postgres only)
+glaivio test                            # run evaluations
+glaivio deploy                          # generate Railway deployment files
+glaivio deploy --target render          # generate Render deployment files
+glaivio deploy --target fly             # generate Fly.io deployment files
+```
 
 ---
 
