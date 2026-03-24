@@ -85,9 +85,10 @@ class PostgresMemory(BaseMemory):
             )
 
         try:
-            with PostgresSaver.from_conn_string(self.url) as saver:
-                saver.setup()
-            self._checkpointer = PostgresSaver.from_conn_string(self.url)
+            ctx = PostgresSaver.from_conn_string(self.url)
+            saver = ctx.__enter__()
+            saver.setup()
+            self._checkpointer = saver
             print("[Glaivio] Postgres memory connected.")
             return self._checkpointer
         except Exception as e:
