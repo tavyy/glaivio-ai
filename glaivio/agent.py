@@ -165,6 +165,11 @@ class Agent:
 
         print(f"[Glaivio] → {user_id}: {reply}\n")
 
+        # track session metadata if using Postgres
+        if hasattr(self.memory, "track"):
+            channel = getattr(self, "_current_channel", None)
+            self.memory.track(user_id=user_id, channel=channel)
+
         # check if agent signalled confusion
         if self.on_confusion and self._is_confused(reply):
             self._paused.add(user_id)
@@ -217,6 +222,7 @@ class Agent:
 
     def run(self, channel: str = "web", **kwargs):
         """Start the agent on a channel."""
+        self._current_channel = channel
         from .channels import get_channel
         ch = get_channel(channel)
         ch.start(self, **kwargs)
