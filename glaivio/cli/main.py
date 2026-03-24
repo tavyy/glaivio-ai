@@ -135,6 +135,30 @@ def migrate(database_url):
 
     click.echo("Running Glaivio migrations...")
 
+    # create the database if it doesn't exist
+    try:
+        import psycopg2
+        from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+        from urllib.parse import urlparse
+
+        parsed = urlparse(url)
+        dbname = parsed.path.lstrip("/")
+        server_url = url.replace(f"/{dbname}", "/postgres")
+
+        conn = psycopg2.connect(server_url)
+        conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+        with conn.cursor() as cur:
+            cur.execute("SELECT 1 FROM pg_database WHERE datname = %s", (dbname,))
+            if not cur.fetchone():
+                cur.execute(f'CREATE DATABASE "{dbname}"')
+                click.echo(f"  ✓ Created database '{dbname}'")
+            else:
+                click.echo(f"  ✓ Database '{dbname}' already exists")
+        conn.close()
+    except Exception as e:
+        click.echo(f"  ✗ Could not create database: {e}")
+        sys.exit(1)
+
     try:
         from langgraph.checkpoint.postgres import PostgresSaver
         saver = PostgresSaver.from_conn_string(url)
