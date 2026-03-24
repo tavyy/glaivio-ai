@@ -541,6 +541,29 @@ Done. Your agent is live.
 
 ---
 
+## Roadmap
+
+**v0.3**
+- [ ] Token usage tracking and cost dashboard
+- [ ] Twilio webhook signature verification
+- [ ] Error handling and automatic retries
+- [ ] Telegram channel
+
+**v0.4**
+- [ ] Built-in skills library (`glaivio.skills.google_calendar`, `glaivio.skills.stripe`, `glaivio.skills.hubspot`)
+- [ ] Conscious/unconscious memory — smart context retrieval instead of fixed message windows
+- [ ] `glaivio test` improvements — better eval reporting
+
+**v1.0**
+- [ ] Glaivio Cloud — one command deploy, hosted memory, observability dashboard
+- [ ] Production hardening — connection pooling, rate limiting, health checks
+
+---
+
+Have an idea or want to contribute? [Open an issue](https://github.com/tavyy/glaivio/issues) or read the [contributing guide](CONTRIBUTING.md).
+
+---
+
 ## License
 
 MIT
