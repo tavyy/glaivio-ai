@@ -26,6 +26,15 @@ That's it. Your agent is live on WhatsApp.
 
 ---
 
+## Prerequisites
+
+- Python 3.10+
+- An [Anthropic API key](https://console.anthropic.com/) — Glaivio uses Claude by default
+- For WhatsApp: a [Twilio account](https://twilio.com) with a WhatsApp-enabled number
+- For Gmail: a Google Cloud project with the Gmail API enabled
+
+---
+
 ## Install
 
 ```bash
@@ -132,7 +141,7 @@ Send a WhatsApp message to your Twilio number. Your agent replies.
 
 **PII redaction** — phone numbers, emails, and sensitive identifiers are automatically stripped before they reach the LLM.
 
-**Multi-channel** — the same agent runs on WhatsApp, SMS, Gmail, or a web chat UI. Switch with one line. Each channel can have its own prompt — formal for email, concise for WhatsApp.
+**Multi-channel** — the same agent runs on WhatsApp or Gmail. Switch with one line. Each channel can have its own prompt — formal for email, concise for WhatsApp.
 
 **Multi-model** — Claude, GPT, Gemini, or local models via Ollama. Swap with one param.
 
@@ -162,7 +171,7 @@ LangChain gives you the primitives — a way to call LLMs, define tools, chain t
 | Define a tool | ✅ | ✅ |
 | Swap LLM providers | ✅ | ✅ |
 | Memory across sessions | You build it | Built in |
-| WhatsApp / SMS channels | You build it | Built in |
+| WhatsApp / Gmail channels | You build it | Built in |
 | User ID in every skill | You build it | Built in |
 | PII redaction | You build it | One flag |
 | Human handoff | You build it | One line |
@@ -287,35 +296,68 @@ agent = Agent(
 
 ### Channels
 
-```python
-agent.run(channel="web")        # browser chat UI + REST API
-agent.run(channel="whatsapp")   # Twilio WhatsApp webhook
-agent.run(channel="sms")        # Twilio SMS webhook
-agent.run(channel="gmail")      # Gmail — polls inbox, replies in-thread
+#### WhatsApp
+
+Add to `.env`:
+```
+ANTHROPIC_API_KEY=your_key
+TWILIO_ACCOUNT_SID=your_sid
+TWILIO_AUTH_TOKEN=your_token
+TWILIO_WHATSAPP_NUMBER=whatsapp:+14155238886
 ```
 
-For Gmail, install the extra dependency:
+Run:
+```bash
+glaivio run --channel whatsapp
+```
+
+For local testing, expose your server with [ngrok](https://ngrok.com):
+```bash
+ngrok http 8000
+```
+
+Then set the webhook URL in your [Twilio WhatsApp sandbox](https://console.twilio.com):
+```
+https://<your-ngrok-id>.ngrok.io/webhook/whatsapp
+```
+
+---
+
+#### Gmail
+
+Install the extra dependency:
 ```bash
 pip install glaivio-ai[gmail]
 ```
 
-Add to `.env`:
+Set up a Google Cloud project, enable the Gmail API, and download your OAuth `credentials.json`. Add to `.env`:
 ```
 GMAIL_CREDENTIALS_FILE=credentials.json
 GMAIL_POLL_INTERVAL=30
-GMAIL_TARGET_EMAIL=support@yourcompany.com  # optional
+GMAIL_TARGET_EMAIL=support@yourcompany.com  # optional — filter by recipient address
 ```
+
+Run:
+```bash
+glaivio run --channel gmail
+```
+
+The first run opens a browser for OAuth. After that the token is cached and it runs silently.
+
+---
+
+#### Channel-specific prompts
 
 Each channel can have its own prompt. If `prompts/gmail.md` exists, Glaivio appends it to your base instructions automatically — so your agent can be formal in email and concise on WhatsApp, without changing any code:
 
 ```
 prompts/
-├── system.md     ← shared instructions
-├── whatsapp.md   ← short, no markdown
-└── gmail.md      ← formal, sign-off, full sentences
+├── system.md     ← shared instructions (who the agent is)
+├── whatsapp.md   ← short replies, no markdown
+└── gmail.md      ← formal tone, full sentences, sign-off
 ```
 
-Or set it in `.env`:
+Or set the default channel in `.env`:
 ```
 GLAIVIO_CHANNEL=whatsapp
 ```
