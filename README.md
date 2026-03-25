@@ -132,7 +132,7 @@ Send a WhatsApp message to your Twilio number. Your agent replies.
 
 **PII redaction** — phone numbers, emails, and sensitive identifiers are automatically stripped before they reach the LLM.
 
-**Multi-channel** — the same agent runs on WhatsApp, SMS, or a web chat UI. Switch with one line.
+**Multi-channel** — the same agent runs on WhatsApp, SMS, Gmail, or a web chat UI. Switch with one line. Each channel can have its own prompt — formal for email, concise for WhatsApp.
 
 **Multi-model** — Claude, GPT, Gemini, or local models via Ollama. Swap with one param.
 
@@ -291,6 +291,28 @@ agent = Agent(
 agent.run(channel="web")        # browser chat UI + REST API
 agent.run(channel="whatsapp")   # Twilio WhatsApp webhook
 agent.run(channel="sms")        # Twilio SMS webhook
+agent.run(channel="gmail")      # Gmail — polls inbox, replies in-thread
+```
+
+For Gmail, install the extra dependency:
+```bash
+pip install glaivio-ai[gmail]
+```
+
+Add to `.env`:
+```
+GMAIL_CREDENTIALS_FILE=credentials.json
+GMAIL_POLL_INTERVAL=30
+GMAIL_TARGET_EMAIL=support@yourcompany.com  # optional
+```
+
+Each channel can have its own prompt. If `prompts/gmail.md` exists, Glaivio appends it to your base instructions automatically — so your agent can be formal in email and concise on WhatsApp, without changing any code:
+
+```
+prompts/
+├── system.md     ← shared instructions
+├── whatsapp.md   ← short, no markdown
+└── gmail.md      ← formal, sign-off, full sentences
 ```
 
 Or set it in `.env`:
