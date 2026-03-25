@@ -29,7 +29,11 @@ That's it. Your agent is live on WhatsApp.
 ## Prerequisites
 
 - Python 3.10+
-- An [Anthropic API key](https://console.anthropic.com/) — Glaivio uses Claude by default
+- An API key for your chosen LLM — Glaivio supports:
+  - **Anthropic Claude** (default) — `ANTHROPIC_API_KEY` from [console.anthropic.com](https://console.anthropic.com/)
+  - **OpenAI GPT** — `OPENAI_API_KEY`, install with `pip install glaivio-ai[openai]`
+  - **Google Gemini** — `GOOGLE_API_KEY`, install with `pip install glaivio-ai[gemini]`
+  - **Ollama** (local, free) — no API key needed, install with `pip install glaivio-ai[ollama]`
 - For WhatsApp: a [Twilio account](https://twilio.com) with a WhatsApp-enabled number
 - For Gmail: a Google Cloud project with the Gmail API enabled
 
