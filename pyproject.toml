@@ -28,6 +28,7 @@ glaivio = "glaivio.cli:cli"
 [project.optional-dependencies]
 postgres = ["langgraph-checkpoint-postgres", "psycopg[binary]", "psycopg2-binary"]
 knowledge = ["chromadb", "langchain-chroma", "sentence-transformers", "pypdf", "unstructured"]
+gmail = ["google-auth-oauthlib", "google-auth-httplib2", "google-api-python-client"]
 gemini = ["langchain-google-genai"]
 openai = ["langchain-openai"]
 ollama = ["langchain-ollama"]

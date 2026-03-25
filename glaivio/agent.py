@@ -7,12 +7,17 @@ from langgraph.prebuilt import create_react_agent
 from .memory.in_memory import InMemory
 
 
-def _resolve_instructions(instructions: str) -> str:
-    """If instructions is a file path, load it. Otherwise return as-is."""
+def _resolve_instructions(instructions: str, channel: str = None) -> str:
+    """Load instructions from a file path. If a channel-specific prompt exists, append it."""
     p = Path(instructions)
-    if p.suffix in (".md", ".txt") and p.exists():
-        return p.read_text()
-    return instructions
+    base = p.read_text() if p.suffix in (".md", ".txt") and p.exists() else instructions
+
+    if channel:
+        channel_prompt = p.parent / f"{channel}.md"
+        if channel_prompt.exists():
+            base += f"\n\n{channel_prompt.read_text()}"
+
+    return base
 
 
 def _trim_messages(messages: list[BaseMessage], max_messages: int) -> list[BaseMessage]:
@@ -69,6 +74,7 @@ class Agent:
         on_confusion=None,
         learn_from_feedback: bool = False,
     ):
+        self._raw_instructions = instructions
         self.instructions = _resolve_instructions(instructions)
         self.skills = skills or []
         self.model_name = model
@@ -223,6 +229,10 @@ class Agent:
     def run(self, channel: str = "web", **kwargs):
         """Start the agent on a channel."""
         self._current_channel = channel
+        # reload instructions with channel-specific prompt if available
+        self.instructions = _resolve_instructions(self._raw_instructions, channel)
+        # clear sessions so they rebuild with the new instructions
+        self._sessions.clear()
         from .channels import get_channel
         ch = get_channel(channel)
         ch.start(self, **kwargs)
