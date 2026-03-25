@@ -542,7 +542,9 @@ glaivio deploy --target fly             # generate Fly.io deployment files
 
 ---
 
-Have an idea or want to contribute? [Open an issue](https://github.com/tavyy/glaivio/issues) or read the [contributing guide](CONTRIBUTING.md).
+⭐ If you're cloning this to build an agent, please drop a star to support the framework!
+
+Have an idea or want to contribute? [Open an issue](https://github.com/tavyy/glaivio-ai/issues) or read the [contributing guide](CONTRIBUTING.md).
 
 ---
 
