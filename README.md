@@ -32,6 +32,10 @@ agent.run(channel="whatsapp")
 
 That's it. Your agent is live on WhatsApp — with memory, PII redaction, and self-improvement.
 
+
+https://github.com/user-attachments/assets/e28e1a8c-95e9-4dcc-9cc6-930b7ba6a1be
+
+
 ---
 
 ## Install
