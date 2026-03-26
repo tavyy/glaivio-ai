@@ -4,38 +4,33 @@
 
 Not just agents that demo well — agents that remember users, recover from mistakes, escalate when stuck, and get smarter over time.
 
+[![PyPI version](https://img.shields.io/pypi/v/glaivio-ai)](https://pypi.org/project/glaivio-ai/)
+[![Python](https://img.shields.io/pypi/pyversions/glaivio-ai)](https://pypi.org/project/glaivio-ai/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![GitHub stars](https://img.shields.io/github/stars/tavyy/glaivio-ai?style=social)](https://github.com/tavyy/glaivio-ai)
+
 Rails did it for web apps. Next.js did it for React. Glaivio does it for AI agents.
 
 ```python
 from glaivio import Agent, skill
 
 @skill
-def get_weather(city: str) -> str:
-    """Get the current weather for a city."""
-    return f"Sunny, 22°C in {city}"
+def book_appointment(patient_name: str, patient_phone: str, date: str, time: str) -> str:
+    """Book an appointment. patient_phone: use the current user's ID from context."""
+    # call your calendar API here
+    return f"Booked {patient_name} on {date} at {time}"
 
 agent = Agent(
     instructions="prompts/system.md",
-    skills=[get_weather],
+    skills=[book_appointment],
+    learn_from_feedback=True,
+    privacy=True,
 )
 
 agent.run(channel="whatsapp")
 ```
 
-That's it. Your agent is live on WhatsApp.
-
----
-
-## Prerequisites
-
-- Python 3.10+
-- An API key for your chosen LLM — Glaivio supports:
-  - **Anthropic Claude** (default) — `ANTHROPIC_API_KEY` from [console.anthropic.com](https://console.anthropic.com/)
-  - **OpenAI GPT** — `OPENAI_API_KEY`, install with `pip install glaivio-ai[openai]`
-  - **Google Gemini** — `GOOGLE_API_KEY`, install with `pip install glaivio-ai[gemini]`
-  - **Ollama** (local, free) — no API key needed, install with `pip install glaivio-ai[ollama]`
-- For WhatsApp: a [Twilio account](https://twilio.com) with a WhatsApp-enabled number
-- For Gmail: a Google Cloud project with the Gmail API enabled
+That's it. Your agent is live on WhatsApp — with memory, PII redaction, and self-improvement.
 
 ---
 
@@ -47,11 +42,136 @@ pip install glaivio-ai
 
 ---
 
+## What ships out of the box
+
+**Persistent memory** — conversation history survives restarts. Zero config in development, one line to switch to Postgres in production.
+
+**Self-improvement** — when a user corrects the agent, it stores the lesson and applies it to all future conversations. No prompt editing required.
+
+**Human handoff** — when the agent is stuck, it notifies a human operator and holds the conversation until they take over.
+
+**PII redaction** — phone numbers, emails, and sensitive identifiers are stripped before they reach the LLM.
+
+**Multi-channel** — the same agent runs on WhatsApp or Gmail. Each channel can have its own prompt — formal for email, concise for WhatsApp.
+
+**Multi-model** — Claude, GPT, Gemini, or local models via Ollama. Swap with one param.
+
+---
+
+## Why Glaivio?
+
+An **AI agent** is an LLM that can take actions, remember things, and talk to users through a channel. Building one from scratch means solving the same problems every time:
+
+- Which LLM? How do I swap between them?
+- How do I give it memory across conversations?
+- How do I connect it to WhatsApp or email?
+- How do I pass the user's identity into a tool call?
+- How do I redact sensitive data before it hits the LLM?
+- How do I escalate to a human when it gets stuck?
+- How do I deploy it?
+
+There are no standard answers. Every team solves these differently, from scratch, every time.
+
+LangChain gives you the primitives — a way to call LLMs, define tools, chain them together. But you still wire everything else yourself. It's powerful, but it's not a framework. It's Lego with no instructions.
+
+**Glaivio makes the decisions for you.**
+
+| | LangChain | Glaivio |
+|---|---|---|
+| Define a tool | ✅ | ✅ |
+| Swap LLM providers | ✅ | ✅ |
+| Memory across sessions | You build it | Built in |
+| WhatsApp / Gmail channels | You build it | Built in |
+| User ID in every skill | You build it | Built in |
+| PII redaction | You build it | One flag |
+| Human handoff | You build it | One line |
+| Agent self-improvement | You build it | One flag |
+| Deployment | You figure it out | One command |
+
+```
+Web era     → Rails      (2004)  — one way to build web apps
+Frontend    → Next.js    (2016)  — one way to build React apps
+Agent era   → Glaivio    (2026)  — one way to build AI agents
+```
+
+Convention over configuration — the same philosophy that made Rails dominate web development for a decade. If you want full control — use LangChain. If you want to ship in hours not weeks — use Glaivio.
+
+---
+
+## How it works
+
+```
+                    ┌──────────────────────┐
+                    │   prompts/system.md  │  ← who the agent is
+                    └──────────┬───────────┘
+                               │
+                    ┌──────────▼───────────┐
+                    │     🧠  LLM          │  ← the brain
+                    │  Claude/GPT/Gemini   │    decides what to do
+                    └──────────┬───────────┘
+                               │
+        ┌──────────────────────┼──────────────────────┐
+        │                      │                      │
+┌───────▼────────┐  ┌──────────▼──────────┐  ┌───────▼────────┐
+│  @skill        │  │  @skill             │  │  @skill        │  ← the arms
+│  search_db()   │  │  send_email()       │  │  book_slot()   │    what it can do
+└───────┬────────┘  └──────────┬──────────┘  └───────┬────────┘
+        │                      │                      │
+        └──────────────────────▼──────────────────────┘
+                               │
+                    ┌──────────▼───────────┐
+                    │  📱 WhatsApp / Gmail  │  ← the mouth
+                    └──────────┬───────────┘    talks to users
+                               │
+                    ┌──────────▼───────────┐       ┌──────────────────────┐
+                    │        User          │       │   👤 Human operator  │
+                    │  "that's wrong,      ├──────►│   notified when      │
+                    │   I meant X not Y"   │ stuck │   agent is confused  │
+                    └──────────┬───────────┘       │                      │
+                               │ correction        │  replies "learned:   │
+                    ┌──────────▼───────────┐       │   always confirm X"  │
+                    │  💡 Self-improvement  │◄──────┘                     │
+                    │  agent gets smarter  │                              │
+                    │  with every mistake  │                              │
+                    └──────────────────────┘
+```
+
+---
+
 ## Quickstart
 
-An AI receptionist that books appointments over WhatsApp — in 5 steps.
+```bash
+pip install glaivio-ai
+glaivio new my-agent
+cd my-agent
+cp .env.example .env   # add your ANTHROPIC_API_KEY
+glaivio run
+```
 
-**1. Scaffold your project**
+Your agent is running. Open `prompts/system.md` to change its instructions. Open `skills/example.py` to add capabilities.
+
+For a full real-world example — an AI receptionist that books appointments over WhatsApp — see the [full quickstart](#full-quickstart) below.
+
+---
+
+## Prerequisites
+
+- Python 3.10+
+- An API key for your chosen LLM:
+  - **Anthropic Claude** (default) — `ANTHROPIC_API_KEY` from [console.anthropic.com](https://console.anthropic.com/)
+  - **OpenAI GPT** — `OPENAI_API_KEY`, install with `pip install glaivio-ai[openai]`
+  - **Google Gemini** — `GOOGLE_API_KEY`, install with `pip install glaivio-ai[gemini]`
+  - **Ollama** (local, free) — no API key needed, install with `pip install glaivio-ai[ollama]`
+- For WhatsApp: a [Twilio account](https://twilio.com) with a WhatsApp-enabled number
+- For Gmail: a Google Cloud project with the Gmail API enabled
+
+---
+
+## Full Quickstart
+
+An AI receptionist that books appointments over WhatsApp.
+
+**1. Scaffold**
 
 ```bash
 glaivio new my-receptionist
@@ -132,103 +252,6 @@ https://<your-ngrok-id>.ngrok.io/webhook/whatsapp
 ```
 
 Send a WhatsApp message to your Twilio number. Your agent replies.
-
----
-
-## What ships out of the box
-
-**Persistent memory** — conversation history survives restarts with Postgres. Zero config in development, one line to switch in production.
-
-**Self-improvement** — when a user corrects the agent, it stores the lesson and applies it to all future conversations. No prompt editing required.
-
-**Human handoff** — when the agent is stuck, it notifies a human operator via WhatsApp or SMS and holds the conversation until they take over.
-
-**PII redaction** — phone numbers, emails, and sensitive identifiers are automatically stripped before they reach the LLM.
-
-**Multi-channel** — the same agent runs on WhatsApp or Gmail. Switch with one line. Each channel can have its own prompt — formal for email, concise for WhatsApp.
-
-**Multi-model** — Claude, GPT, Gemini, or local models via Ollama. Swap with one param.
-
----
-
-## Why Glaivio?
-
-An **AI agent** is an LLM that can take actions, remember things, and talk to users through a channel. Building one from scratch means solving the same problems every time:
-
-- Which LLM? How do I swap between them?
-- How do I give it memory across conversations?
-- How do I connect it to WhatsApp or SMS?
-- How do I pass the user's identity into a tool call?
-- How do I redact sensitive data before it hits the LLM?
-- How do I escalate to a human when it gets stuck?
-- How do I deploy it?
-- How do I test it when I change the prompt?
-
-There are no standard answers. Every team solves these differently, from scratch, every time.
-
-LangChain gives you the primitives — a way to call LLMs, define tools, chain them together. But you still wire everything else yourself. It's powerful, but it's not a framework. It's Lego with no instructions.
-
-**Glaivio makes the decisions for you.**
-
-| | LangChain | Glaivio |
-|---|---|---|
-| Define a tool | ✅ | ✅ |
-| Swap LLM providers | ✅ | ✅ |
-| Memory across sessions | You build it | Built in |
-| WhatsApp / Gmail channels | You build it | Built in |
-| User ID in every skill | You build it | Built in |
-| PII redaction | You build it | One flag |
-| Human handoff | You build it | One line |
-| Agent self-improvement | You build it | One flag |
-| Deployment | You figure it out | One command |
-
-```
-Web era     → Rails      (2004)  — one way to build web apps
-Frontend    → Next.js    (2016)  — one way to build React apps
-Agent era   → Glaivio    (2026)  — one way to build AI agents
-```
-
-Convention over configuration — the same philosophy that made Rails dominate web development for a decade. If you want full control — use LangChain. If you want to ship in hours not weeks — use Glaivio.
-
----
-
-## How it works
-
-```
-                    ┌──────────────────────┐
-                    │   prompts/system.md  │  ← who the agent is
-                    └──────────┬───────────┘
-                               │
-                    ┌──────────▼───────────┐
-                    │     🧠  LLM          │  ← the brain
-                    │  Claude/GPT/Gemini   │    decides what to do
-                    └──────────┬───────────┘
-                               │
-        ┌──────────────────────┼──────────────────────┐
-        │                      │                      │
-┌───────▼────────┐  ┌──────────▼──────────┐  ┌───────▼────────┐
-│  @skill        │  │  @skill             │  │  @skill        │  ← the arms
-│  search_db()   │  │  send_email()       │  │  book_slot()   │    what it can do
-└───────┬────────┘  └──────────┬──────────┘  └───────┬────────┘
-        │                      │                      │
-        └──────────────────────▼──────────────────────┘
-                               │
-                    ┌──────────▼───────────┐
-                    │  📱 WhatsApp/SMS/Web  │  ← the mouth
-                    └──────────┬───────────┘    talks to users
-                               │
-                    ┌──────────▼───────────┐       ┌──────────────────────┐
-                    │        User          │       │   👤 Human operator  │
-                    │  "that's wrong,      ├──────►│   notified when      │
-                    │   I meant X not Y"   │ stuck │   agent is confused  │
-                    └──────────┬───────────┘       │                      │
-                               │ correction        │  replies "learned:   │
-                    ┌──────────▼───────────┐       │   always confirm X"  │
-                    │  💡 Self-improvement  │◄──────┘                     │
-                    │  agent gets smarter  │                              │
-                    │  with every mistake  │                              │
-                    └──────────────────────┘
-```
 
 ---
 
@@ -346,13 +369,13 @@ Run:
 glaivio run --channel gmail
 ```
 
-The first run opens a browser for OAuth. After that the token is cached and it runs silently.
+The first run opens a browser for OAuth. After that the token is cached and it runs silently. The agent uses LLM classification to decide which emails to handle — it reads its own instructions to determine what's relevant.
 
 ---
 
 #### Channel-specific prompts
 
-Each channel can have its own prompt. If `prompts/gmail.md` exists, Glaivio appends it to your base instructions automatically — so your agent can be formal in email and concise on WhatsApp, without changing any code:
+Each channel can have its own prompt. If `prompts/gmail.md` exists, Glaivio appends it to your base instructions automatically:
 
 ```
 prompts/
@@ -419,7 +442,7 @@ agent = Agent(
 )
 ```
 
-The agent detects confusion, notifies your team via WhatsApp/SMS, and holds the conversation until a human takes over.
+The agent detects confusion, notifies your team via WhatsApp, and holds the conversation until a human takes over.
 
 ---
 
@@ -551,6 +574,8 @@ glaivio deploy --target fly             # generate Fly.io deployment files
 - [x] User ID injection — skills always know who they're talking to
 - [x] Self-improvement — agent learns from user corrections automatically
 - [x] Human handoff — escalate to operator when confused, operator teaches agent
+- [x] Gmail channel — polls inbox, LLM classification, replies in-thread
+- [x] Channel-specific prompts — different tone per channel, zero config
 
 **v0.3 — Observability**
 - [ ] Token usage tracking per session, per user, per channel
@@ -588,7 +613,7 @@ glaivio deploy --target fly             # generate Fly.io deployment files
 
 ---
 
-⭐ If you're cloning this to build an agent, please drop a star to support the framework!
+⭐ If you find this useful, a star goes a long way — it helps more developers find the project.
 
 Have an idea or want to contribute? [Open an issue](https://github.com/tavyy/glaivio-ai/issues) or read the [contributing guide](CONTRIBUTING.md).
 
