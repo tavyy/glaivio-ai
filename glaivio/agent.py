@@ -31,7 +31,7 @@ def _resolve_llm(model: str) -> BaseChatModel:
     """Resolve a model string to a Langchain LLM instance."""
     if model.startswith("claude"):
         from langchain_anthropic import ChatAnthropic
-        return ChatAnthropic(model=model, max_tokens=256)
+        return ChatAnthropic(model=model, max_tokens=1024)
     elif model.startswith("gemini"):
         from langchain_google_genai import ChatGoogleGenerativeAI
         return ChatGoogleGenerativeAI(model=model)

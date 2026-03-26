@@ -295,7 +295,7 @@ def run(channel, port):
 
 @cli.group()
 def generate():
-    """Generate boilerplate files. Example: glaivio generate skill BookAppointment"""
+    """Generate a skill: glaivio generate skill BookAppointment"""
     pass
 
 
