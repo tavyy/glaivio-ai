@@ -27,11 +27,19 @@ def _trim_messages(messages: list[BaseMessage], max_messages: int) -> list[BaseM
     return messages
 
 
-def _resolve_llm(model: str) -> BaseChatModel:
+CHANNEL_MAX_TOKENS = {
+    "whatsapp": 512,
+    "sms": 256,
+    "gmail": 1024,
+    "web": 1024,
+}
+
+
+def _resolve_llm(model: str, max_tokens: int = 1024) -> BaseChatModel:
     """Resolve a model string to a Langchain LLM instance."""
     if model.startswith("claude"):
         from langchain_anthropic import ChatAnthropic
-        return ChatAnthropic(model=model, max_tokens=1024)
+        return ChatAnthropic(model=model, max_tokens=max_tokens)
     elif model.startswith("gemini"):
         from langchain_google_genai import ChatGoogleGenerativeAI
         return ChatGoogleGenerativeAI(model=model)
@@ -119,7 +127,8 @@ class Agent:
     def _get_session(self, user_id: str):
         """Get or create a per-user agent session."""
         if user_id not in self._sessions:
-            llm = _resolve_llm(self.model_name)
+            max_tokens = CHANNEL_MAX_TOKENS.get(self._current_channel, 1024)
+            llm = _resolve_llm(self.model_name, max_tokens=max_tokens)
             checkpointer = self.memory.get_checkpointer()
             system = self._build_system(user_id)
             # combine skills + knowledge retriever
