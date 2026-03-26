@@ -24,9 +24,30 @@ def new(name):
         click.echo(f"Error: directory '{name}' already exists.")
         sys.exit(1)
 
-    click.echo(f"Creating {name}/...")
+    click.echo("")
+    click.echo("Let's set up your Glaivio project.\n")
 
-    # create folders
+    # ── Ask questions ──────────────────────────────────────────────────────────
+
+    agent_description = click.prompt("What does your agent do? (e.g. 'AI receptionist for a dental clinic')", default="A helpful assistant")
+
+    channel_choice = click.prompt(
+        "Which channel(s)?",
+        type=click.Choice(["whatsapp", "gmail", "both"]),
+        default="whatsapp",
+    )
+
+    use_memory = click.confirm("Enable persistent memory (Postgres)?", default=False)
+    db_name = None
+    if use_memory:
+        db_name = click.prompt("Database name", default=name.replace("-", "_"))
+
+    use_privacy = click.confirm("Enable PII redaction?", default=True)
+    use_learning = click.confirm("Enable self-improvement (agent learns from corrections)?", default=True)
+
+    click.echo(f"\nCreating {name}/...")
+
+    # ── Create folders ─────────────────────────────────────────────────────────
     (root / "skills").mkdir(parents=True)
     (root / "knowledge").mkdir(parents=True)
     (root / "prompts").mkdir(parents=True)
@@ -34,38 +55,59 @@ def new(name):
     click.echo("  ✓ knowledge/")
     click.echo("  ✓ prompts/")
 
-    # prompts/system.md
-    (root / "prompts" / "system.md").write_text('''\
-You are a helpful assistant.
+    # ── prompts/system.md ──────────────────────────────────────────────────────
+    (root / "prompts" / "system.md").write_text(f'''\
+You are {agent_description}.
 
-Keep replies concise and friendly.
+Keep replies concise and helpful.
 ''')
     click.echo("  ✓ prompts/system.md")
 
-    # agent.py
-    (root / "agent.py").write_text(f'''\
-from glaivio import Agent, skill
-from dotenv import load_dotenv
+    # ── channel-specific prompts ───────────────────────────────────────────────
+    if channel_choice in ("whatsapp", "both"):
+        (root / "prompts" / "whatsapp.md").write_text('''\
+You are communicating via WhatsApp. Keep replies SHORT — this is a text message.
+Max 2 sentences. Never use bullet points or markdown formatting.
+Be friendly and conversational.
+''')
+        click.echo("  ✓ prompts/whatsapp.md")
 
+    if channel_choice in ("gmail", "both"):
+        (root / "prompts" / "gmail.md").write_text('''\
+You are communicating via email. Write in full sentences and paragraphs.
+Be professional but warm. Keep replies concise — 3-5 sentences for most queries.
+Always sign off with your name and contact details.
+''')
+        click.echo("  ✓ prompts/gmail.md")
+
+    # ── agent.py ───────────────────────────────────────────────────────────────
+    memory_import = "from glaivio.memory import PostgresMemory\n" if use_memory else ""
+    memory_line = f'    memory=PostgresMemory(url=os.getenv("DATABASE_URL")),\n' if use_memory else ""
+    os_import = "import os\n" if use_memory else ""
+    privacy_line = "    privacy=True,\n" if use_privacy else ""
+    learning_line = "    learn_from_feedback=True,\n" if use_learning else ""
+
+    default_channel = "whatsapp" if channel_choice == "whatsapp" else "gmail" if channel_choice == "gmail" else "whatsapp"
+
+    (root / "agent.py").write_text(f'''\
+from dotenv import load_dotenv
 load_dotenv()
 
-# Import your skills
-from skills.example import hello
+{os_import}from glaivio import Agent
+{memory_import}from skills.example import hello
 
 agent = Agent(
     instructions="prompts/system.md",
     skills=[hello],
-)
+{memory_line}{privacy_line}{learning_line})
 
 if __name__ == "__main__":
-    agent.run()
+    agent.run(channel="{default_channel}")
 ''')
     click.echo("  ✓ agent.py")
 
-    # skills/__init__.py
+    # ── skills ─────────────────────────────────────────────────────────────────
     (root / "skills" / "__init__.py").write_text("")
-
-    # skills/example.py
     (root / "skills" / "example.py").write_text('''\
 from glaivio import skill
 
@@ -77,44 +119,72 @@ def hello(name: str) -> str:
 ''')
     click.echo("  ✓ skills/example.py")
 
-    # .env.example
-    (root / ".env.example").write_text('''\
-ANTHROPIC_API_KEY=your_key_here
+    # ── .env.example ───────────────────────────────────────────────────────────
+    env_lines = [
+        "# ── LLM ──────────────────────────────────────────────────────────────────────",
+        "ANTHROPIC_API_KEY=your_key_here",
+        "# OPENAI_API_KEY=your_key_here",
+        "# GOOGLE_API_KEY=your_key_here",
+        "",
+        f"# ── Channel ───────────────────────────────────────────────────────────────────",
+        f"GLAIVIO_CHANNEL={default_channel}",
+        "",
+    ]
 
-# Optional — only needed for specific channels
-TWILIO_ACCOUNT_SID=
-TWILIO_AUTH_TOKEN=
-TWILIO_NUMBER=
-TWILIO_WHATSAPP_NUMBER=
+    if channel_choice in ("whatsapp", "both"):
+        env_lines += [
+            "# ── WhatsApp (Twilio) ─────────────────────────────────────────────────────────",
+            "TWILIO_ACCOUNT_SID=",
+            "TWILIO_AUTH_TOKEN=",
+            "TWILIO_WHATSAPP_NUMBER=whatsapp:+14155238886",
+            "",
+        ]
 
-# Optional — switch channels
-GLAIVIO_CHANNEL=web
-''')
+    if channel_choice in ("gmail", "both"):
+        env_lines += [
+            "# ── Gmail ─────────────────────────────────────────────────────────────────────",
+            "GMAIL_CREDENTIALS_FILE=credentials.json",
+            "GMAIL_POLL_INTERVAL=30",
+            "GMAIL_TARGET_EMAIL=support@yourcompany.com",
+            "",
+        ]
+
+    if use_memory:
+        env_lines += [
+            "# ── Database ─────────────────────────────────────────────────────────────────",
+            f"DATABASE_URL=postgresql://localhost/{db_name}",
+            "",
+        ]
+
+    (root / ".env.example").write_text("\n".join(env_lines))
     click.echo("  ✓ .env.example")
 
-    # .gitignore
+    # ── .gitignore ─────────────────────────────────────────────────────────────
     (root / ".gitignore").write_text('''\
 .env
 __pycache__/
 *.pyc
 .venv/
+.gmail_token.json
+.glaivio/
 ''')
     click.echo("  ✓ .gitignore")
 
-    # requirements.txt
-    (root / "requirements.txt").write_text('''\
-glaivio-ai
-python-dotenv
-''')
+    # ── requirements.txt ───────────────────────────────────────────────────────
+    reqs = ["glaivio-ai", "python-dotenv"]
+    if channel_choice in ("gmail", "both"):
+        reqs.append("glaivio-ai[gmail]")
+    (root / "requirements.txt").write_text("\n".join(reqs) + "\n")
     click.echo("  ✓ requirements.txt")
 
+    migrate_note = f"\n  glaivio migrate             # create database tables" if use_memory else ""
     click.echo(f"""
 ✓ {name}/ ready
 
 Next steps:
   cd {name}
-  cp .env.example .env        # add your ANTHROPIC_API_KEY
-  pip install -r requirements.txt
+  cp .env.example .env        # fill in your API keys
+  pip install -r requirements.txt{migrate_note}
   glaivio run
 """)
 
