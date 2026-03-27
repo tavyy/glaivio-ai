@@ -479,6 +479,22 @@ When a user says *"that's wrong, I said Tuesday not Wednesday"* — the agent ex
 
 ---
 
+### Multi-language
+
+Glaivio agents work in any language — just write your prompts in the language you want the agent to respond in.
+
+```markdown
+<!-- prompts/system.md -->
+Eres un asistente para una clínica dental en Madrid.
+Responde siempre en español, de forma concisa y amable.
+```
+
+No configuration needed. The agent responds in whatever language the prompt is written in — Spanish, French, Romanian, Arabic, anything.
+
+For channel-specific tone in a different language, write `prompts/whatsapp.md` or `prompts/gmail.md` in the same language as your system prompt.
+
+---
+
 ### Structured Extraction
 
 Extract structured data from natural language:
