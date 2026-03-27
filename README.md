@@ -9,6 +9,8 @@ Not just agents that demo well — agents that remember users, recover from mist
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![GitHub stars](https://img.shields.io/github/stars/tavyy/glaivio-ai?style=social)](https://github.com/tavyy/glaivio-ai)
 
+⭐ If this saves you time, [give it a star](https://github.com/tavyy/glaivio-ai) — it helps other developers find it.
+
 Rails did it for web apps. Next.js did it for React. Glaivio does it for AI agents.
 
 ```python
