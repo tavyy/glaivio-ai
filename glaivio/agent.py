@@ -164,10 +164,11 @@ class Agent:
         if user_id in self._paused:
             return "You're already connected with our team. They'll be in touch shortly."
 
-        # redact PII before sending to LLM
+        # redact PII before sending to LLM, keep mapping for re-hydration
+        pii_mapping = {}
         if self.privacy:
-            from .privacy.redact import redact
-            message = redact(message)
+            from .privacy.redact import redact, rehydrate
+            message, pii_mapping = redact(message)
 
         session = self._get_session(user_id)
         config = {"configurable": {"thread_id": user_id}}
@@ -190,6 +191,10 @@ class Agent:
 
         trimmed = _trim_messages(messages, self.max_messages)
         reply = trimmed[-1].content
+
+        # re-hydrate: restore real values in the LLM's reply
+        if pii_mapping:
+            reply = rehydrate(reply, pii_mapping)
 
         print(f"[Glaivio] → {user_id}: {reply}\n")
 

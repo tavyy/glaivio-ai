@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "glaivio-ai"
-version = "0.3.1"
+version = "0.3.2"
 description = "The opinionated framework for AI-native apps"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -35,6 +35,7 @@ glaivio = "glaivio.cli:cli"
 
 [project.optional-dependencies]
 postgres = ["langgraph-checkpoint-postgres", "psycopg[binary]", "psycopg2-binary"]
+privacy = ["datafog"]
 knowledge = ["chromadb", "langchain-chroma", "sentence-transformers", "pypdf", "unstructured"]
 gmail = ["google-auth-oauthlib", "google-auth-httplib2", "google-api-python-client"]
 gemini = ["langchain-google-genai"]

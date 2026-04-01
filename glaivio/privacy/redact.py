@@ -1,21 +1,64 @@
-import re
-
-
-# Patterns to redact before sending to LLM
-_PATTERNS = [
-    (re.compile(r"\b\+?[\d\s\-().]{10,15}\b"), "[PHONE]"),          # phone numbers
-    (re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b"), "[EMAIL]"),  # emails
-    (re.compile(r"\b[A-Z]{1,2}\d{6}[A-Z]?\b"), "[NHS_NUMBER]"),     # NHS numbers
-    (re.compile(r"\b\d{2}/\d{2}/\d{4}\b"), "[DOB]"),                # dates of birth
-    (re.compile(r"\b[A-Z]{2}\d{6}[A-Z]\b"), "[NI_NUMBER]"),         # NI numbers
-]
-
-
-def redact(text: str) -> str:
+def redact(text: str) -> tuple[str, dict]:
     """
-    Redact PII from text before sending to an LLM.
-    Replaces phone numbers, emails, NHS numbers, dates of birth, NI numbers.
+    Scan text for PII using DataFog, replace with numbered placeholders.
+    Returns (redacted_text, mapping) where mapping is placeholder → original value.
+
+    The mapping is passed to rehydrate() to restore real values in the LLM's reply.
     """
-    for pattern, replacement in _PATTERNS:
-        text = pattern.sub(replacement, text)
+    try:
+        from datafog import scan_prompt
+        result = scan_prompt(text, engine="regex")
+        entities = getattr(result, "entities", [])
+
+        if not entities:
+            print("[Glaivio] ✓ Privacy: no PII detected")
+            return text, {}
+
+        mapping = {}
+        redacted = text
+        counters = {}
+
+        # Skip entity types that skills need for booking (names, phones)
+        SKIP_TYPES = {"PERSON", "PHONE", "PHONE_NUMBER"}
+
+        # Sort by length descending to avoid partial replacements
+        sorted_entities = sorted(entities, key=lambda e: len(str(e.value)), reverse=True)
+
+        for entity in sorted_entities:
+            value = str(entity.value)
+            etype = str(entity.type).upper()
+
+            if not value or value not in redacted:
+                continue
+
+            if etype in SKIP_TYPES:
+                print(f"[Glaivio] ✓ Privacy: kept '{value}' ({etype}) for skill use")
+                continue
+
+            counters[etype] = counters.get(etype, 0) + 1
+            placeholder = f"[{etype}_{counters[etype]}]"
+            mapping[placeholder] = value
+            redacted = redacted.replace(value, placeholder)
+            print(f"[Glaivio] 🔒 Redacted: '{value}' → '{placeholder}'")
+
+        print(f"[Glaivio] 🔒 Sending to LLM: {redacted}")
+        return redacted, mapping
+
+    except ImportError:
+        raise ImportError(
+            "Privacy redaction requires datafog.\n"
+            "Install it with: pip install glaivio-ai[privacy]"
+        )
+
+
+def rehydrate(text: str, mapping: dict) -> str:
+    """
+    Replace placeholders in the LLM reply with the original PII values.
+    Restores personalisation after the LLM has processed the redacted message.
+    """
+    print(f"[Glaivio] 🔓 Re-hydrating reply with {len(mapping)} value(s)")
+    for placeholder, original in mapping.items():
+        if placeholder in text:
+            print(f"[Glaivio] 🔓 Restored: '{placeholder}' → '{original}'")
+            text = text.replace(placeholder, original)
     return text
