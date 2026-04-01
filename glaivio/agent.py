@@ -81,6 +81,7 @@ class Agent:
         max_messages: int = 20,
         on_confusion=None,
         learn_from_feedback: bool = False,
+        session_ttl: int = None,
     ):
         self._raw_instructions = instructions
         self.instructions = _resolve_instructions(instructions)
@@ -91,12 +92,14 @@ class Agent:
         self.inject_date = inject_date
         self.knowledge = knowledge
         self.max_messages = max_messages
+        self.session_ttl = session_ttl  # hours, None to disable
 
         self.on_confusion = on_confusion
         self.learn_from_feedback = learn_from_feedback
         self._sessions: dict[str, any] = {}
         self._paused: set[str] = set()
         self._last_reply: dict[str, str] = {}  # track last reply per user
+        self._last_seen: dict[str, datetime.datetime] = {}  # track last activity per user
         self._knowledge_tool = None
         self._learner = None
 
@@ -146,6 +149,16 @@ class Agent:
 
     def reply(self, user_id: str, message: str) -> str:
         """Send a message and get a response. Used by channels internally."""
+
+        # expire session if TTL has passed
+        if self.session_ttl:
+            last_seen = self._last_seen.get(user_id)
+            if last_seen:
+                elapsed = (datetime.datetime.now() - last_seen).total_seconds()
+                if elapsed > self.session_ttl * 3600:
+                    self.reset(user_id)
+                    print(f"[Glaivio] Session expired for {user_id}")
+        self._last_seen[user_id] = datetime.datetime.now()
 
         # if handed off to human, hold until reset
         if user_id in self._paused:
@@ -234,6 +247,7 @@ class Agent:
         self._sessions.pop(user_id, None)
         self._paused.discard(user_id)
         self._last_reply.pop(user_id, None)
+        self._last_seen.pop(user_id, None)
 
     def run(self, channel: str = "web", **kwargs):
         """Start the agent on a channel."""
