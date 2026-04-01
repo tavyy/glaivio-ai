@@ -56,7 +56,7 @@ pip install glaivio-ai
 
 **Human handoff** — when the agent is stuck, it notifies a human operator and holds the conversation until they take over.
 
-**PII redaction** — phone numbers, emails, and sensitive identifiers are stripped before they reach the LLM.
+**PII redaction** — sensitive identifiers are redacted before reaching the LLM and re-hydrated in the reply, so users still get personalised responses.
 
 **Multi-channel** — the same agent runs on WhatsApp or Gmail. Each channel can have its own prompt — formal for email, concise for WhatsApp.
 
@@ -454,13 +454,31 @@ The agent detects confusion, notifies your team via WhatsApp, and holds the conv
 
 ### Privacy
 
-Automatically redact PII before it reaches the LLM:
+Glaivio uses a **redact & re-hydrate** workflow powered by [DataFog](https://datafog.ai/):
+
+1. **Redact** — sensitive identifiers (NHS numbers, NI numbers, DOBs, emails) are replaced with placeholders before the message reaches the LLM
+2. **Process** — the LLM sees `[NHS_NUMBER_1]` instead of real data
+3. **Re-hydrate** — placeholders are swapped back in the LLM's reply before it reaches the user
+
+Names and phone numbers are intentionally **not** redacted so booking skills work correctly.
 
 ```python
 agent = Agent(
     instructions="prompts/system.md",
-    privacy=True,  # redacts phone numbers, emails, NHS numbers, NI numbers
+    privacy=True,
 )
+```
+
+```bash
+pip install "glaivio-ai[privacy]"
+```
+
+You'll see exactly what's happening in your logs:
+
+```
+[Glaivio] 🔒 Redacted: 'AB123456C' → '[NI_NUMBER_1]'
+[Glaivio] 🔒 Sending to LLM: my NI number is [NI_NUMBER_1]
+[Glaivio] 🔓 Restored: '[NI_NUMBER_1]' → 'AB123456C'
 ```
 
 ---
