@@ -15,22 +15,24 @@ class WhatsAppChannel:
         app = FastAPI(title="Glaivio — WhatsApp")
 
         @app.post("/webhook/whatsapp")
-        async def inbound(From: str = Form(...), Body: str = Form(...)):
-            reply = agent.reply(user_id=From, message=Body.strip())
+        async def inbound(From: str = Form(...), Body: str = Form(...), To: str = Form(default=None)):
+            resolved = agent.resolve(To) if hasattr(agent, "resolve") else agent
+            user_id = f"{To}:{From}" if hasattr(agent, "resolve") and To else From
+            reply = resolved.reply(user_id=user_id, message=Body.strip())
             twiml = MessagingResponse()
             twiml.message(reply)
             return Response(content=str(twiml), media_type="text/xml")
 
         @app.post("/webhook/operator")
-        async def operator(From: str = Form(...), Body: str = Form(...)):
+        async def operator(From: str = Form(...), Body: str = Form(...), To: str = Form(default=None)):
             """Inbound messages from the operator — handles learned:/resume: commands."""
-            response = agent.operator_reply(Body.strip())
+            resolved = agent.resolve(To) if hasattr(agent, "resolve") and To else agent
+            response = resolved.operator_reply(Body.strip())
             if response:
                 twiml = MessagingResponse()
                 twiml.message(response)
                 return Response(content=str(twiml), media_type="text/xml")
-            # not a handoff command — treat as normal inbound
-            return await inbound(From=From, Body=Body)
+            return await inbound(From=From, Body=Body, To=To)
 
         @app.delete("/session/{user_id}")
         async def clear(user_id: str):
