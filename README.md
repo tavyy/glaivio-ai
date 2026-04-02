@@ -482,6 +482,7 @@ agent = Agent(
 
 ```bash
 pip install "glaivio-ai[privacy]"
+python -m spacy download en_core_web_lg
 ```
 
 You'll see exactly what's happening in your logs:
