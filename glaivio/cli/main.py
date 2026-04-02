@@ -377,6 +377,23 @@ def _to_snake(name: str) -> str:
     return re.sub("([a-z0-9])([A-Z])", r"\1_\2", s1).lower()
 
 
+# ── glaivio extras ────────────────────────────────────────────────────────────
+
+@cli.command()
+def extras():
+    """Show available optional feature installs."""
+    click.echo("""
+Optional features:
+
+  pip install "glaivio-ai[privacy]"    PII redaction & re-hydration (DataFog)
+  pip install "glaivio-ai[gmail]"      Gmail channel support
+  pip install "glaivio-ai[knowledge]"  RAG / knowledge base (ChromaDB)
+  pip install "glaivio-ai[openai]"     OpenAI / GPT model support
+  pip install "glaivio-ai[gemini]"     Google Gemini model support
+  pip install "glaivio-ai[ollama]"     Local models via Ollama
+""")
+
+
 # ── glaivio deploy ────────────────────────────────────────────────────────────
 
 @cli.command()
