@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "glaivio-ai"
-version = "0.3.7"
+version = "0.3.8"
 description = "The opinionated framework for AI-native apps"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -29,6 +29,7 @@ dependencies = [
     "psycopg2-binary",
     "langgraph-checkpoint-postgres",
     "psycopg[binary]",
+    "pytz",
 ]
 
 [project.scripts]
