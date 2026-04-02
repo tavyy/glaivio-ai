@@ -1,6 +1,17 @@
 from .base import BaseMemory
 
 
+CREATE_CONTACTS_TABLE = """
+CREATE TABLE IF NOT EXISTS glaivio_contacts (
+    id         SERIAL PRIMARY KEY,
+    user_id    TEXT UNIQUE NOT NULL,
+    name       TEXT,
+    metadata   JSONB DEFAULT '{}',
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+"""
+
 CREATE_SESSIONS_TABLE = """
 CREATE TABLE IF NOT EXISTS glaivio_sessions (
     id            SERIAL PRIMARY KEY,
