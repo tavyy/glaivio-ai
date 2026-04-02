@@ -17,10 +17,9 @@ def redact(text: str) -> tuple[str, dict]:
             "Install it with: pip install glaivio-ai[privacy]"
         )
 
-    # Entity types to redact — skip PERSON and PHONE so booking skills work
+    # Entity types to redact — skip PERSON, PHONE and DATE_TIME so booking skills work
     REDACT_TYPES = [
         "EMAIL_ADDRESS",
-        "DATE_TIME",
         "MEDICAL_LICENSE",
         "NRP",           # National Registration Number (NI numbers etc.)
         "IBAN_CODE",
