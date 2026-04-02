@@ -46,6 +46,17 @@ https://github.com/user-attachments/assets/e28e1a8c-95e9-4dcc-9cc6-930b7ba6a1be
 pip install glaivio-ai
 ```
 
+**Optional extras:**
+
+```bash
+pip install "glaivio-ai[privacy]"    # PII redaction & re-hydration (DataFog)
+pip install "glaivio-ai[gmail]"      # Gmail channel support
+pip install "glaivio-ai[knowledge]"  # RAG / knowledge base (ChromaDB)
+pip install "glaivio-ai[openai]"     # OpenAI / GPT model support
+pip install "glaivio-ai[gemini]"     # Google Gemini model support
+pip install "glaivio-ai[ollama]"     # Local models via Ollama
+```
+
 ---
 
 ## What ships out of the box
