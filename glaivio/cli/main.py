@@ -385,7 +385,7 @@ def extras():
     click.echo("""
 Optional features:
 
-  pip install "glaivio-ai[privacy]"    PII redaction & re-hydration (DataFog)
+  pip install "glaivio-ai[privacy]"    PII redaction & re-hydration (Presidio)
   pip install "glaivio-ai[gmail]"      Gmail channel support
   pip install "glaivio-ai[knowledge]"  RAG / knowledge base (ChromaDB)
   pip install "glaivio-ai[openai]"     OpenAI / GPT model support

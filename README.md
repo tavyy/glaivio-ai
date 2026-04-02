@@ -49,7 +49,7 @@ pip install glaivio-ai
 **Optional extras:**
 
 ```bash
-pip install "glaivio-ai[privacy]"    # PII redaction & re-hydration (DataFog)
+pip install "glaivio-ai[privacy]"    # PII redaction & re-hydration (Presidio)
 pip install "glaivio-ai[gmail]"      # Gmail channel support
 pip install "glaivio-ai[knowledge]"  # RAG / knowledge base (ChromaDB)
 pip install "glaivio-ai[openai]"     # OpenAI / GPT model support
@@ -465,7 +465,7 @@ The agent detects confusion, notifies your team via WhatsApp, and holds the conv
 
 ### Privacy
 
-Glaivio uses a **redact & re-hydrate** workflow powered by [DataFog](https://datafog.ai/):
+Glaivio uses a **redact & re-hydrate** workflow powered by [Microsoft Presidio](https://microsoft.github.io/presidio/):
 
 1. **Redact** — sensitive identifiers (NHS numbers, NI numbers, DOBs, emails) are replaced with placeholders before the message reaches the LLM
 2. **Process** — the LLM sees `[NHS_NUMBER_1]` instead of real data
