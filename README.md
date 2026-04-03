@@ -495,6 +495,28 @@ You'll see exactly what's happening in your logs:
 
 ---
 
+### Audit Trail
+
+Every conversation turn is persisted to Postgres — raw message, redacted message, skill calls, and reply. Requires `PostgresMemory`.
+
+```sql
+SELECT user_id, raw_message, redacted_message, pii_redacted, skill_calls, reply, created_at
+FROM glaivio_audit
+ORDER BY created_at DESC;
+```
+
+| Column | Description |
+|---|---|
+| `raw_message` | Exact message received from the user |
+| `redacted_message` | Message sent to the LLM (PII replaced) |
+| `pii_redacted` | Whether any PII was detected and redacted |
+| `skill_calls` | JSON array of skills called and their arguments |
+| `reply` | Final reply sent back to the user |
+
+Run `glaivio migrate` to create the table automatically.
+
+---
+
 ### Learning from Feedback
 
 The agent learns from user corrections automatically:
