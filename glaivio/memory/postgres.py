@@ -1,6 +1,20 @@
 from .base import BaseMemory
 
 
+CREATE_AUDIT_TABLE = """
+CREATE TABLE IF NOT EXISTS glaivio_audit (
+    id              SERIAL PRIMARY KEY,
+    user_id         TEXT NOT NULL,
+    channel         TEXT,
+    raw_message     TEXT,
+    redacted_message TEXT,
+    pii_redacted    BOOLEAN DEFAULT FALSE,
+    skill_calls     JSONB DEFAULT '[]',
+    reply           TEXT,
+    created_at      TIMESTAMP DEFAULT NOW()
+);
+"""
+
 CREATE_CONTACTS_TABLE = """
 CREATE TABLE IF NOT EXISTS glaivio_contacts (
     id         SERIAL PRIMARY KEY,
@@ -68,6 +82,21 @@ class PostgresMemory(BaseMemory):
         with conn.cursor() as cur:
             cur.execute(CREATE_SESSIONS_TABLE)
         conn.commit()
+
+    def audit(self, user_id: str, channel: str, raw_message: str, redacted_message: str, pii_redacted: bool, skill_calls: list, reply: str):
+        """Persist a full audit record for a conversation turn."""
+        try:
+            import json
+            conn = self._get_conn()
+            with conn.cursor() as cur:
+                cur.execute("""
+                    INSERT INTO glaivio_audit
+                        (user_id, channel, raw_message, redacted_message, pii_redacted, skill_calls, reply)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                """, (user_id, channel, raw_message, redacted_message, pii_redacted, json.dumps(skill_calls), reply))
+            conn.commit()
+        except Exception as e:
+            print(f"[Glaivio] Audit error: {e}")
 
     def track(self, user_id: str, channel: str = None, tokens_used: int = 0):
         """Update session metadata after each turn."""

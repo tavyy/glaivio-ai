@@ -164,6 +164,9 @@ class Agent:
         if user_id in self._paused:
             return "You're already connected with our team. They'll be in touch shortly."
 
+        # keep raw message for audit before redaction
+        raw_message = message
+
         # redact PII before sending to LLM, keep mapping for re-hydration
         pii_mapping = {}
         if self.privacy:
@@ -182,10 +185,12 @@ class Agent:
         messages = result["messages"]
 
         # log skill calls and results
+        skill_calls = []
         for msg in messages:
             if hasattr(msg, "tool_calls") and msg.tool_calls:
                 for tc in msg.tool_calls:
                     print(f"[Glaivio] ⚙ skill: {tc['name']}({tc['args']})")
+                    skill_calls.append({"name": tc["name"], "args": tc["args"]})
             if msg.__class__.__name__ == "ToolMessage":
                 print(f"[Glaivio] ⚙ result: {msg.content}")
 
@@ -198,10 +203,21 @@ class Agent:
 
         print(f"[Glaivio] → {user_id}: {reply}\n")
 
-        # track session metadata if using Postgres
+        # track session metadata and audit if using Postgres
         if hasattr(self.memory, "track"):
             channel = getattr(self, "_current_channel", None)
             self.memory.track(user_id=user_id, channel=channel)
+        if hasattr(self.memory, "audit"):
+            channel = getattr(self, "_current_channel", None)
+            self.memory.audit(
+                user_id=user_id,
+                channel=channel,
+                raw_message=raw_message,
+                redacted_message=message if pii_mapping else raw_message,
+                pii_redacted=bool(pii_mapping),
+                skill_calls=skill_calls,
+                reply=reply,
+            )
 
         # check if agent signalled confusion
         if self.on_confusion and self._is_confused(reply):
