@@ -167,6 +167,13 @@ class Agent:
         # keep raw message for audit before redaction
         raw_message = message
 
+        # expand special internal triggers before sending to LLM
+        if message == "missed_call":
+            message = (
+                "The customer just tried to call but couldn't get through. "
+                "Send a short, friendly message letting them know you're available to help via this chat."
+            )
+
         # redact PII before sending to LLM, keep mapping for re-hydration
         pii_mapping = {}
         if self.privacy:
