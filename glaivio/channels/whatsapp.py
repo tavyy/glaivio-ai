@@ -3,6 +3,7 @@ import uvicorn
 from fastapi import FastAPI, Form
 from fastapi.responses import Response
 from twilio.twiml.messaging_response import MessagingResponse
+from twilio.twiml.voice_response import VoiceResponse
 
 
 MISSED_CALL_STATUSES = {"no-answer", "busy", "canceled", "failed"}
@@ -80,6 +81,21 @@ class WhatsAppChannel:
 
             return {"status": "sent", "to": wa_to}
 
+        @app.post("/twiml/reject")
+        async def reject():
+            """
+            TwiML endpoint for incoming voice calls.
+            Plays a short message then hangs up.
+            Twilio fires /webhook/missed-call via status callback after this.
+            """
+            twiml = VoiceResponse()
+            twiml.say(
+                "Hi, we're not available right now. We'll send you a message shortly.",
+                voice="alice",
+            )
+            twiml.hangup()
+            return Response(content=str(twiml), media_type="text/xml")
+
         @app.delete("/session/{user_id}")
         async def clear(user_id: str):
             agent.reset(user_id)
@@ -88,4 +104,5 @@ class WhatsAppChannel:
         print(f"Glaivio WhatsApp agent running on port {port}")
         print(f"Webhook:      POST http://localhost:{port}/webhook/whatsapp")
         print(f"Missed calls: POST http://localhost:{port}/webhook/missed-call")
+        print(f"Voice reject: POST http://localhost:{port}/twiml/reject")
         uvicorn.run(app, host="0.0.0.0", port=port)
