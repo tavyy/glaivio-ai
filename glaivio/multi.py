@@ -50,6 +50,7 @@ class MultiAgent:
                 instructions += f"\n\nIf the customer says yes to WhatsApp, send them this link to start a chat: {wa_link}"
             self._agents[number] = Agent(
                 instructions=instructions,
+                name=name,
                 skills=self._skills,
                 **self._agent_kwargs,
             )

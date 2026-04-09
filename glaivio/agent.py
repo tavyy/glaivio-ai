@@ -76,7 +76,7 @@ class Agent:
         memory=None,
         privacy: bool = False,
         inject_date: bool = True,
-
+        name: str = None,
         knowledge=None,
         max_messages: int = 20,
         on_confusion=None,
@@ -85,6 +85,7 @@ class Agent:
     ):
         self._raw_instructions = instructions
         self.instructions = _resolve_instructions(instructions)
+        self.name = name
         self.skills = skills or []
         self.model_name = model
         self.memory = memory or InMemory()
@@ -125,6 +126,7 @@ class Agent:
             system += f"\nToday is {datetime.date.today().strftime('%Y-%m-%d, %A')}."
         if user_id:
             system += f"\nThe current user's ID is: {user_id}"
+        system += "\nIf asked whether you are human or AI, always confirm you are an AI assistant. Never use em dashes (—) in your replies."
         return system
 
     def _get_session(self, user_id: str):
@@ -203,7 +205,11 @@ class Agent:
                 print(f"[Glaivio] ⚙ result: {msg.content}")
 
         trimmed = _trim_messages(messages, self.max_messages)
-        reply = trimmed[-1].content
+        reply = trimmed[-1].content.replace("—", " ").replace("–", " ")
+
+        # prepend AI disclosure on first message if name is set
+        if self.name and user_id not in self._last_reply:
+            reply = f"This is {self.name}'s personal AI assistant. {reply}"
 
         # re-hydrate: restore real values in the LLM's reply
         if pii_mapping:
