@@ -43,6 +43,11 @@ class MultiAgent:
         for number, cfg in clients.items():
             name = cfg.get("name", number)
             instructions = cfg.get("instructions", "You are a helpful assistant.")
+            whatsapp_number = cfg.get("whatsapp_number")
+            if whatsapp_number:
+                wa_number = whatsapp_number.replace("+", "").replace(" ", "")
+                wa_link = f"https://wa.me/{wa_number}"
+                instructions += f"\n\nIf the customer says yes to WhatsApp, send them this link to start a chat: {wa_link}"
             self._agents[number] = Agent(
                 instructions=instructions,
                 skills=self._skills,

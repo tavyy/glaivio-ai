@@ -171,7 +171,8 @@ class Agent:
         if message == "missed_call":
             message = (
                 "The customer just tried to call but couldn't get through. "
-                "Send a short, friendly message letting them know you're available to help via this chat."
+                "Send ONE short sentence apologising for missing their call. "
+                "Then ask: 'Do you have WhatsApp?' in a second sentence. Nothing else."
             )
 
         # redact PII before sending to LLM, keep mapping for re-hydration
