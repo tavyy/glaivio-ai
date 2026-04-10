@@ -62,6 +62,11 @@ class MultiAgent:
             raise ValueError(f"No client configured for '{to}'. Check clients.yaml.")
         return self._agents[to]
 
+    def reset(self, user_id: str):
+        """Clear session for a user across all agents."""
+        for agent in self._agents.values():
+            agent.reset(user_id)
+
     def run(self, channel: str = "whatsapp", **kwargs):
         """Start the multi-client agent on a channel."""
         for agent in self._agents.values():
