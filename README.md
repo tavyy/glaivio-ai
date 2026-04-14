@@ -367,6 +367,48 @@ https://<your-ngrok-id>.ngrok.io/webhook/whatsapp
 
 ---
 
+#### SMS
+
+Add to `.env`:
+```
+TWILIO_ACCOUNT_SID=your_sid
+TWILIO_AUTH_TOKEN=your_token
+```
+
+Run:
+```bash
+glaivio run --channel sms
+```
+
+Point your Twilio number's **Messaging webhook** at:
+```
+https://<your-ngrok-id>.ngrok.io/webhook/sms
+```
+
+---
+
+#### Missed Call → SMS Reply
+
+When a client calls and nobody picks up, Glaivio automatically sends them an SMS to continue the conversation.
+
+Set the **Voice Status Callback** on your Twilio number to:
+```
+https://<your-ngrok-id>.ngrok.io/webhook/missed-call
+```
+
+The agent generates a personalised reply in its own voice and sends it via SMS. When the client replies, the conversation continues normally on `/webhook/sms`.
+
+Built-in guards prevent spam:
+- Calls under 5 seconds are ignored (robocalls, accidental dials)
+- Rate limited to one SMS per caller per 24 hours (persisted in Postgres if available)
+
+For local testing, disable guards with:
+```bash
+glaivio run --channel sms --dev
+```
+
+---
+
 #### Gmail
 
 Install the extra dependency:
@@ -513,7 +555,15 @@ ORDER BY created_at DESC;
 | `skill_calls` | JSON array of skills called and their arguments |
 | `reply` | Final reply sent back to the user |
 
-Run `glaivio migrate` to create the table automatically.
+Run `glaivio migrate` to create all tables automatically.
+
+Missed call rate limiting is tracked in `glaivio_missed_calls`:
+
+```sql
+SELECT from_number, to_number, sent_at
+FROM glaivio_missed_calls
+ORDER BY sent_at DESC;
+```
 
 ---
 
@@ -628,6 +678,7 @@ Done. Your agent is live.
 glaivio new my-app                      # scaffold a project
 glaivio run                             # start the agent
 glaivio run --channel whatsapp          # start on a specific channel
+glaivio run --channel sms --dev         # SMS channel with guards disabled (local testing)
 glaivio generate skill BookAppointment  # generate a skill stub
 glaivio migrate                         # run database migrations (Postgres only)
 glaivio test                            # run evaluations
