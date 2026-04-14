@@ -1,4 +1,5 @@
 import os
+import datetime
 import uvicorn
 from fastapi import FastAPI, Form
 from fastapi.responses import Response
@@ -10,6 +11,12 @@ MISSED_CALL_STATUSES = {"no-answer", "busy", "canceled", "failed"}
 
 MISSED_CALL_TRIGGER = "missed_call"
 
+# guard: minimum call duration in seconds to send SMS (filters robocalls/accidents)
+MIN_CALL_DURATION = 5
+
+# guard: rate limit — one missed call SMS per caller per this many hours
+MISSED_CALL_RATE_LIMIT_HOURS = 24
+
 
 class SMSChannel:
     """
@@ -20,6 +27,7 @@ class SMSChannel:
 
     def start(self, agent, port: int = 8000):
         app = FastAPI(title="Glaivio — SMS")
+        _missed_call_sent: dict[str, datetime.datetime] = {}  # rate limit tracker
 
         @app.post("/webhook/sms")
         async def inbound(From: str = Form(...), Body: str = Form(...), To: str = Form(default=None)):
@@ -50,10 +58,31 @@ class SMSChannel:
             if not is_missed:
                 return {"status": "ignored", "CallStatus": CallStatus}
 
-            print(f"[Glaivio] Missed call from {From} to {To} (status={CallStatus})")
-
+            dev_mode = os.getenv("GLAIVIO_DEV") == "1"
             resolved = agent.resolve(To) if hasattr(agent, "resolve") else agent
             user_id = f"{To}:{From}" if hasattr(agent, "resolve") else From
+
+            # guard: ignore very short calls (robocalls, accidental dials)
+            if not dev_mode and int(CallDuration) < MIN_CALL_DURATION:
+                print(f"[Glaivio] Ignored short call ({CallDuration}s) from {From}")
+                return {"status": "ignored", "reason": "too_short"}
+
+            # guard: rate limit — one SMS per caller per 24h
+            if not dev_mode:
+                resolved_memory = getattr(resolved, "memory", None)
+                if resolved_memory and hasattr(resolved_memory, "check_missed_call_rate_limit"):
+                    if resolved_memory.check_missed_call_rate_limit(From, MISSED_CALL_RATE_LIMIT_HOURS):
+                        print(f"[Glaivio] Rate limited missed call from {From} (Postgres)")
+                        return {"status": "ignored", "reason": "rate_limited"}
+                else:
+                    last_sent = _missed_call_sent.get(From)
+                    if last_sent:
+                        elapsed = (datetime.datetime.now() - last_sent).total_seconds()
+                        if elapsed < MISSED_CALL_RATE_LIMIT_HOURS * 3600:
+                            print(f"[Glaivio] Rate limited missed call from {From} (last sent {int(elapsed/3600)}h ago)")
+                            return {"status": "ignored", "reason": "rate_limited"}
+
+            print(f"[Glaivio] Missed call from {From} to {To} (status={CallStatus})")
 
             reply = resolved.reply(user_id=user_id, message=MISSED_CALL_TRIGGER)
 
@@ -66,6 +95,11 @@ class SMSChannel:
             from twilio.rest import Client
             client = Client(account_sid, auth_token)
             client.messages.create(body=reply, from_=To, to=From)
+            resolved_memory = getattr(resolved, "memory", None)
+            if resolved_memory and hasattr(resolved_memory, "record_missed_call"):
+                resolved_memory.record_missed_call(From, To)
+            else:
+                _missed_call_sent[From] = datetime.datetime.now()
             print(f"[Glaivio] Missed-call SMS reply sent to {From}")
 
             return {"status": "sent", "to": From}

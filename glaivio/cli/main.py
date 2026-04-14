@@ -242,17 +242,19 @@ def migrate(database_url):
 
     try:
         import psycopg2
-        from glaivio.memory.postgres import CREATE_SESSIONS_TABLE, CREATE_CONTACTS_TABLE, CREATE_AUDIT_TABLE
+        from glaivio.memory.postgres import CREATE_SESSIONS_TABLE, CREATE_CONTACTS_TABLE, CREATE_AUDIT_TABLE, CREATE_MISSED_CALLS_TABLE
         conn = psycopg2.connect(url)
         with conn.cursor() as cur:
             cur.execute(CREATE_SESSIONS_TABLE)
             cur.execute(CREATE_CONTACTS_TABLE)
             cur.execute(CREATE_AUDIT_TABLE)
+            cur.execute(CREATE_MISSED_CALLS_TABLE)
         conn.commit()
         conn.close()
         click.echo("  ✓ glaivio_sessions table")
         click.echo("  ✓ glaivio_contacts table")
         click.echo("  ✓ glaivio_audit table")
+        click.echo("  ✓ glaivio_missed_calls table")
     except Exception as e:
         click.echo(f"  ✗ glaivio_sessions table failed: {e}")
         sys.exit(1)
@@ -265,7 +267,8 @@ def migrate(database_url):
 @cli.command()
 @click.option("--channel", default=None, help="Channel to run on: web, whatsapp, sms")
 @click.option("--port", default=8000, help="Port to run on")
-def run(channel, port):
+@click.option("--dev", is_flag=True, default=False, help="Dev mode: disable missed call guards (rate limit, min duration)")
+def run(channel, port, dev):
     """Start the agent. Reads GLAIVIO_CHANNEL from .env if --channel not set."""
     from dotenv import load_dotenv
     load_dotenv(dotenv_path=Path.cwd() / ".env", override=True)
@@ -291,6 +294,10 @@ def run(channel, port):
     if not hasattr(module, "agent"):
         click.echo("Error: agent.py must define an 'agent' variable.")
         sys.exit(1)
+
+    if dev:
+        os.environ["GLAIVIO_DEV"] = "1"
+        click.echo("Dev mode: missed call guards disabled")
 
     module.agent.run(channel=resolved_channel, port=port)
 
