@@ -4,6 +4,7 @@
 
 Not just agents that demo well — agents that remember users, recover from mistakes, escalate when stuck, and get smarter over time.
 
+[![Tests](https://github.com/tavyy/glaivio-ai/actions/workflows/tests.yml/badge.svg)](https://github.com/tavyy/glaivio-ai/actions/workflows/tests.yml)
 [![PyPI version](https://img.shields.io/pypi/v/glaivio-ai)](https://pypi.org/project/glaivio-ai/)
 [![Python](https://img.shields.io/pypi/pyversions/glaivio-ai)](https://pypi.org/project/glaivio-ai/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)

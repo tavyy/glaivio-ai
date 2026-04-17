@@ -37,6 +37,7 @@ dependencies = [
 glaivio = "glaivio.cli:cli"
 
 [project.optional-dependencies]
+dev = ["pytest", "pytest-asyncio", "python-dotenv"]
 postgres = ["langgraph-checkpoint-postgres", "psycopg[binary]", "psycopg2-binary"]
 privacy = ["presidio-analyzer", "presidio-anonymizer", "spacy"]
 knowledge = ["chromadb", "langchain-chroma", "sentence-transformers", "pypdf", "unstructured"]
@@ -51,6 +52,10 @@ all = [
     "langchain-openai",
     "langchain-ollama",
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
 
 [project.urls]
 Homepage = "https://github.com/tavyy/glaivio-ai"

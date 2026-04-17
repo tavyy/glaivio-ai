@@ -97,6 +97,7 @@ class Agent:
 
         self.on_confusion = on_confusion
         self.learn_from_feedback = learn_from_feedback
+        self._current_channel = "web"
         self._sessions: dict[str, any] = {}
         self._paused: set[str] = set()
         self._last_reply: dict[str, str] = {}  # track last reply per user
