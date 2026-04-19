@@ -49,6 +49,18 @@ CREATE TABLE IF NOT EXISTS glaivio_missed_calls (
 CREATE UNIQUE INDEX IF NOT EXISTS glaivio_missed_calls_from_idx ON glaivio_missed_calls (from_number);
 """
 
+CREATE_SMS_CONSENT_TABLE = """
+CREATE TABLE IF NOT EXISTS glaivio_sms_consent (
+    id          SERIAL PRIMARY KEY,
+    from_number TEXT NOT NULL,
+    to_number   TEXT NOT NULL,
+    status      TEXT NOT NULL DEFAULT 'pending',
+    created_at  TIMESTAMP DEFAULT NOW(),
+    updated_at  TIMESTAMP DEFAULT NOW()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS glaivio_sms_consent_idx ON glaivio_sms_consent (from_number, to_number);
+"""
+
 UPSERT_SESSION = """
 INSERT INTO glaivio_sessions (user_id, channel, last_seen, message_count, tokens_used)
 VALUES (%(user_id)s, %(channel)s, NOW(), 1, %(tokens_used)s)
@@ -92,6 +104,7 @@ class PostgresMemory(BaseMemory):
         with conn.cursor() as cur:
             cur.execute(CREATE_SESSIONS_TABLE)
             cur.execute(CREATE_MISSED_CALLS_TABLE)
+            cur.execute(CREATE_SMS_CONSENT_TABLE)
         conn.commit()
 
     def check_missed_call_rate_limit(self, from_number: str, hours: int = 24) -> bool:
@@ -107,6 +120,7 @@ class PostgresMemory(BaseMemory):
                 return cur.fetchone() is not None
         except Exception as e:
             print(f"[Glaivio] Rate limit check error: {e}")
+            self._conn.rollback()
             return False
 
     def record_missed_call(self, from_number: str, to_number: str):
@@ -122,6 +136,40 @@ class PostgresMemory(BaseMemory):
             conn.commit()
         except Exception as e:
             print(f"[Glaivio] Record missed call error: {e}")
+            self._conn.rollback()
+
+    def get_sms_consent(self, from_number: str, to_number: str) -> str:
+        """Return consent status: 'pending', 'consented', 'opted_out', or None (unknown)."""
+        try:
+            conn = self._get_conn()
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT status FROM glaivio_sms_consent
+                    WHERE from_number = %s AND to_number = %s
+                """, (from_number, to_number))
+                row = cur.fetchone()
+                return row[0] if row else None
+        except Exception as e:
+            print(f"[Glaivio] Consent check error: {e}")
+            self._conn.rollback()
+            return None
+
+    def set_sms_consent(self, from_number: str, to_number: str, status: str):
+        """Set consent status for a number. status: 'pending', 'consented', 'opted_out'."""
+        try:
+            conn = self._get_conn()
+            with conn.cursor() as cur:
+                cur.execute("""
+                    INSERT INTO glaivio_sms_consent (from_number, to_number, status)
+                    VALUES (%s, %s, %s)
+                    ON CONFLICT (from_number, to_number) DO UPDATE SET
+                        status = EXCLUDED.status,
+                        updated_at = NOW()
+                """, (from_number, to_number, status))
+            conn.commit()
+        except Exception as e:
+            print(f"[Glaivio] Consent update error: {e}")
+            self._conn.rollback()
 
     def audit(self, user_id: str, channel: str, raw_message: str, redacted_message: str, pii_redacted: bool, skill_calls: list, reply: str):
         """Persist a full audit record for a conversation turn."""
@@ -137,6 +185,7 @@ class PostgresMemory(BaseMemory):
             conn.commit()
         except Exception as e:
             print(f"[Glaivio] Audit error: {e}")
+            self._conn.rollback()
 
     def track(self, user_id: str, channel: str = None, tokens_used: int = 0):
         """Update session metadata after each turn."""
@@ -151,6 +200,7 @@ class PostgresMemory(BaseMemory):
             conn.commit()
         except Exception as e:
             print(f"[Glaivio] Session tracking error: {e}")
+            self._conn.rollback()
 
     def get_checkpointer(self):
         if self._checkpointer is not None:

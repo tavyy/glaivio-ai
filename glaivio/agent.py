@@ -177,6 +177,11 @@ class Agent:
                 "Send ONE short sentence apologising for missing their call. "
                 "Then ask: 'Do you have WhatsApp?' in a second sentence. Nothing else."
             )
+        elif message == "new_sms_conversation":
+            message = (
+                "The customer just confirmed they want to continue by text. "
+                "Greet them warmly and ask how you can help."
+            )
 
         # redact PII before sending to LLM, keep mapping for re-hydration
         pii_mapping = {}

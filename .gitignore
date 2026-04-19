@@ -6,3 +6,4 @@ dist/
 *.egg-info/
 token.json
 credentials.json
+ARCHITECTURE.md

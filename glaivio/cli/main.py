@@ -242,19 +242,21 @@ def migrate(database_url):
 
     try:
         import psycopg2
-        from glaivio.memory.postgres import CREATE_SESSIONS_TABLE, CREATE_CONTACTS_TABLE, CREATE_AUDIT_TABLE, CREATE_MISSED_CALLS_TABLE
+        from glaivio.memory.postgres import CREATE_SESSIONS_TABLE, CREATE_CONTACTS_TABLE, CREATE_AUDIT_TABLE, CREATE_MISSED_CALLS_TABLE, CREATE_SMS_CONSENT_TABLE
         conn = psycopg2.connect(url)
         with conn.cursor() as cur:
             cur.execute(CREATE_SESSIONS_TABLE)
             cur.execute(CREATE_CONTACTS_TABLE)
             cur.execute(CREATE_AUDIT_TABLE)
             cur.execute(CREATE_MISSED_CALLS_TABLE)
+            cur.execute(CREATE_SMS_CONSENT_TABLE)
         conn.commit()
         conn.close()
         click.echo("  ✓ glaivio_sessions table")
         click.echo("  ✓ glaivio_contacts table")
         click.echo("  ✓ glaivio_audit table")
         click.echo("  ✓ glaivio_missed_calls table")
+        click.echo("  ✓ glaivio_sms_consent table")
     except Exception as e:
         click.echo(f"  ✗ glaivio_sessions table failed: {e}")
         sys.exit(1)
