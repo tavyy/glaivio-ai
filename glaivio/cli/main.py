@@ -33,7 +33,7 @@ def new(name):
 
     channel_choice = click.prompt(
         "Which channel(s)?",
-        type=click.Choice(["whatsapp", "gmail", "both"]),
+        type=click.Choice(["whatsapp", "sms", "gmail", "both"]),
         default="whatsapp",
     )
 
@@ -72,6 +72,13 @@ Be friendly and conversational.
 ''')
         click.echo("  ✓ prompts/whatsapp.md")
 
+    if channel_choice == "sms":
+        (root / "prompts" / "sms.md").write_text('''\
+You are communicating via SMS. Keep replies VERY SHORT — max 160 characters if possible.
+Never use bullet points or markdown. Be direct and friendly.
+''')
+        click.echo("  ✓ prompts/sms.md")
+
     if channel_choice in ("gmail", "both"):
         (root / "prompts" / "gmail.md").write_text('''\
 You are communicating via email. Write in full sentences and paragraphs.
@@ -87,9 +94,35 @@ Always sign off with your name and contact details.
     privacy_line = "    privacy=True,\n" if use_privacy else ""
     learning_line = "    learn_from_feedback=True,\n" if use_learning else ""
 
-    default_channel = "whatsapp" if channel_choice == "whatsapp" else "gmail" if channel_choice == "gmail" else "whatsapp"
+    default_channel = channel_choice if channel_choice in ("whatsapp", "sms", "gmail") else "whatsapp"
 
-    (root / "agent.py").write_text(f'''\
+    if channel_choice == "sms":
+        (root / "agent.py").write_text(f'''\
+from dotenv import load_dotenv
+load_dotenv()
+
+{os_import}from glaivio import MultiAgent
+{memory_import}from skills.example import hello
+
+agent = MultiAgent(
+    config="clients.yaml",
+    skills=[hello],
+{memory_line}{privacy_line}{learning_line})
+
+if __name__ == "__main__":
+    agent.run(channel="sms")
+''')
+        (root / "clients.yaml").write_text('''\
+# Map each client's Twilio SMS number to their config
+# Add a new entry per client
+
+"+1xxxxxxxxxx":
+  name: Your Business Name
+  instructions: prompts/system.md
+''')
+        click.echo("  ✓ clients.yaml")
+    else:
+        (root / "agent.py").write_text(f'''\
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -137,6 +170,14 @@ def hello(name: str) -> str:
             "TWILIO_ACCOUNT_SID=",
             "TWILIO_AUTH_TOKEN=",
             "TWILIO_WHATSAPP_NUMBER=whatsapp:+14155238886",
+            "",
+        ]
+
+    if channel_choice == "sms":
+        env_lines += [
+            "# ── SMS (Twilio) ──────────────────────────────────────────────────────────────",
+            "TWILIO_ACCOUNT_SID=",
+            "TWILIO_AUTH_TOKEN=",
             "",
         ]
 
