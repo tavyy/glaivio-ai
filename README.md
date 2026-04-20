@@ -388,20 +388,26 @@ https://<your-ngrok-id>.ngrok.io/webhook/sms
 
 ---
 
-#### Missed Call → SMS Reply
+#### Missed Call → SMS Reply (TCPA compliant)
 
-When a client calls and nobody picks up, Glaivio automatically sends them an SMS to continue the conversation.
+When a client calls and nobody picks up, Glaivio sends a TCPA-compliant consent request via SMS before starting any AI conversation.
 
 Set the **Voice Status Callback** on your Twilio number to:
 ```
 https://<your-ngrok-id>.ngrok.io/webhook/missed-call
 ```
 
-The agent generates a personalised reply in its own voice and sends it via SMS. When the client replies, the conversation continues normally on `/webhook/sms`.
+The flow:
+1. Missed call → Glaivio sends: *"Hi, this is [Business]. Sorry we missed your call! Reply YES to continue by text or STOP to opt out."*
+2. Customer replies **YES** → AI conversation starts
+3. Customer replies **STOP** → opted out permanently, no further messages sent
 
 Built-in guards prevent spam:
 - Calls under 5 seconds are ignored (robocalls, accidental dials)
 - Rate limited to one SMS per caller per 24 hours (persisted in Postgres if available)
+- Opted-out numbers are never contacted again
+
+Consent state is persisted in `glaivio_sms_consent` (Postgres) or in-memory as fallback.
 
 For local testing, disable guards with:
 ```bash
@@ -447,6 +453,58 @@ prompts/
 Or set the default channel in `.env`:
 ```
 GLAIVIO_CHANNEL=whatsapp
+```
+
+---
+
+### MultiAgent
+
+Run multiple clients from a single deployment. Each client gets their own number, prompt, and name — routed automatically by Twilio's `To` number.
+
+**`clients.yaml`:**
+```yaml
+"whatsapp:+447911111111":
+  name: bright-smile
+  instructions: prompts/bright-smile.md
+
+"+14155551234":
+  name: QuickCool HVAC
+  instructions: prompts/quickcool.md
+  base: prompts/system.md
+```
+
+**`agent.py`:**
+```python
+from glaivio import MultiAgent
+from glaivio.memory import PostgresMemory
+
+agent = MultiAgent(
+    config="clients.yaml",
+    skills=[check_availability, book_appointment],
+    memory=PostgresMemory(url=os.getenv("DATABASE_URL")),
+)
+
+agent.run(channel="sms")
+```
+
+#### Base prompt injection
+
+Use `base` in `clients.yaml` to share a generic prompt across all clients, with client-specific details appended:
+
+```yaml
+"+14155551234":
+  name: QuickCool HVAC
+  instructions: prompts/quickcool.md   # client-specific details
+  base: prompts/system.md              # shared behaviour
+```
+
+At runtime Glaivio combines them: `system.md` + `quickcool.md` + `sms.md` (channel prompt).
+
+```
+prompts/
+├── system.md      ← shared behaviour (role, flow, rules)
+├── quickcool.md   ← client details (name, phone, hours)
+└── sms.md         ← channel formatting (auto-appended)
 ```
 
 ---
@@ -565,6 +623,20 @@ SELECT from_number, to_number, sent_at
 FROM glaivio_missed_calls
 ORDER BY sent_at DESC;
 ```
+
+SMS consent state is tracked in `glaivio_sms_consent`:
+
+```sql
+SELECT from_number, to_number, status, updated_at
+FROM glaivio_sms_consent
+ORDER BY updated_at DESC;
+```
+
+| Status | Meaning |
+|---|---|
+| `pending` | Consent request sent, waiting for YES/STOP |
+| `consented` | Customer replied YES — AI conversation active |
+| `opted_out` | Customer replied STOP — never contact again |
 
 ---
 
