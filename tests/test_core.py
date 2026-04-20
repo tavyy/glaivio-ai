@@ -6,9 +6,13 @@ Run with: pytest tests/test_core.py -v
 """
 import datetime
 import pytest
+import tempfile
+import os
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from glaivio import Agent, skill
+from glaivio.multi import MultiAgent
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -260,3 +264,78 @@ def test_skill_calls_are_captured(agent):
         reply = agent.reply("patient-001", "Is Tuesday 10am free?")
 
     assert "available" in reply.lower() or "tuesday" in reply.lower() or "10" in reply
+
+
+# ── MultiAgent base prompt injection ─────────────────────────────────────────
+
+@pytest.fixture
+def multi_agent_dir(tmp_path):
+    """Create a temp directory with clients.yaml and prompt files."""
+    (tmp_path / "prompts").mkdir()
+    (tmp_path / "prompts" / "system.md").write_text("# Generic HVAC behaviour\nYou are an HVAC receptionist.")
+    (tmp_path / "prompts" / "quickcool.md").write_text("# Business Info\nName: QuickCool HVAC\nPhone: +1 555 123 4567")
+    (tmp_path / "clients.yaml").write_text(
+        '"+1xxxxxxxxxx":\n'
+        '  name: QuickCool HVAC\n'
+        '  instructions: prompts/quickcool.md\n'
+        '  base: prompts/system.md\n'
+    )
+    return tmp_path
+
+
+def test_multiagent_base_prepends_to_instructions(multi_agent_dir):
+    """base prompt is prepended before client-specific instructions."""
+    orig_dir = os.getcwd()
+    os.chdir(multi_agent_dir)
+    try:
+        ma = MultiAgent(config="clients.yaml")
+        agent = ma.resolve("+1xxxxxxxxxx")
+        assert "Generic HVAC behaviour" in agent.instructions
+        assert "QuickCool HVAC" in agent.instructions
+    finally:
+        os.chdir(orig_dir)
+
+
+def test_multiagent_base_comes_before_client(multi_agent_dir):
+    """base prompt content appears before client-specific content."""
+    orig_dir = os.getcwd()
+    os.chdir(multi_agent_dir)
+    try:
+        ma = MultiAgent(config="clients.yaml")
+        agent = ma.resolve("+1xxxxxxxxxx")
+        base_pos = agent.instructions.index("Generic HVAC behaviour")
+        client_pos = agent.instructions.index("QuickCool HVAC")
+        assert base_pos < client_pos
+    finally:
+        os.chdir(orig_dir)
+
+
+def test_multiagent_without_base(tmp_path):
+    """clients.yaml without base field works as before."""
+    (tmp_path / "prompts").mkdir()
+    (tmp_path / "prompts" / "quickcool.md").write_text("You are a helpful assistant.")
+    (tmp_path / "clients.yaml").write_text(
+        '"+1xxxxxxxxxx":\n'
+        '  name: QuickCool HVAC\n'
+        '  instructions: prompts/quickcool.md\n'
+    )
+    orig_dir = os.getcwd()
+    os.chdir(tmp_path)
+    try:
+        ma = MultiAgent(config="clients.yaml")
+        agent = ma.resolve("+1xxxxxxxxxx")
+        assert "helpful assistant" in agent.instructions
+    finally:
+        os.chdir(orig_dir)
+
+
+def test_multiagent_resolve_unknown_number(multi_agent_dir):
+    """Resolving an unknown number raises ValueError."""
+    orig_dir = os.getcwd()
+    os.chdir(multi_agent_dir)
+    try:
+        ma = MultiAgent(config="clients.yaml")
+        with pytest.raises(ValueError, match="No client configured"):
+            ma.resolve("+9999999999")
+    finally:
+        os.chdir(orig_dir)

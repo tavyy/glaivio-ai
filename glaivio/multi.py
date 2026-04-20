@@ -43,6 +43,13 @@ class MultiAgent:
         for number, cfg in clients.items():
             name = cfg.get("name", number)
             instructions = cfg.get("instructions", "You are a helpful assistant.")
+            base = cfg.get("base")
+            if base:
+                base_path = Path(base)
+                if base_path.exists():
+                    client_path = Path(instructions)
+                    client_text = client_path.read_text() if client_path.exists() else instructions
+                    instructions = base_path.read_text() + f"\n\n{client_text}"
             whatsapp_number = cfg.get("whatsapp_number")
             if whatsapp_number:
                 wa_number = whatsapp_number.replace("+", "").replace(" ", "")
