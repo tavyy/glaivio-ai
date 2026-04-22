@@ -752,6 +752,7 @@ glaivio new my-app                      # scaffold a project
 glaivio run                             # start the agent
 glaivio run --channel whatsapp          # start on a specific channel
 glaivio run --channel sms --dev         # SMS channel with guards disabled (local testing)
+glaivio run --reset                     # clear all conversation history before starting
 glaivio generate skill BookAppointment  # generate a skill stub
 glaivio migrate                         # run database migrations (Postgres only)
 glaivio test                            # run evaluations

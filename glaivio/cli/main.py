@@ -311,7 +311,8 @@ def migrate(database_url):
 @click.option("--channel", default=None, help="Channel to run on: web, whatsapp, sms")
 @click.option("--port", default=8000, help="Port to run on")
 @click.option("--dev", is_flag=True, default=False, help="Dev mode: disable missed call guards (rate limit, min duration)")
-def run(channel, port, dev):
+@click.option("--reset", is_flag=True, default=False, help="Clear all conversation history before starting")
+def run(channel, port, dev, reset):
     """Start the agent. Reads GLAIVIO_CHANNEL from .env if --channel not set."""
     from dotenv import load_dotenv
     load_dotenv(dotenv_path=Path.cwd() / ".env", override=True)
@@ -342,7 +343,39 @@ def run(channel, port, dev):
         os.environ["GLAIVIO_DEV"] = "1"
         click.echo("Dev mode: missed call guards disabled")
 
+    if reset:
+        _reset_conversations(module.agent)
+        click.echo("All conversation history cleared.")
+
     module.agent.run(channel=resolved_channel, port=port)
+
+
+def _reset_conversations(agent):
+    """Clear all conversation history from Postgres checkpointer tables."""
+    memory = getattr(agent, "memory", None)
+    # MultiAgent — get memory from first agent
+    if memory is None and hasattr(agent, "_agents"):
+        first = next(iter(agent._agents.values()), None)
+        memory = getattr(first, "memory", None) if first else None
+
+    if memory is None:
+        return
+
+    url = getattr(memory, "url", None)
+    if not url:
+        return
+
+    try:
+        import psycopg2
+        conn = psycopg2.connect(url)
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM checkpoint_blobs")
+            cur.execute("DELETE FROM checkpoint_writes")
+            cur.execute("DELETE FROM checkpoints")
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        click.echo(f"  Warning: could not clear checkpoints: {e}")
 
 
 # ── glaivio generate skill <Name> ─────────────────────────────────────────────
